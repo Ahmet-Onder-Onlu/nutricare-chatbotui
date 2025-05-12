@@ -18,6 +18,7 @@ import { ChatInput } from "./chat-input"
 import { ChatMessages } from "./chat-messages"
 import { ChatScrollButtons } from "./chat-scroll-buttons"
 import { ChatSecondaryButtons } from "./chat-secondary-buttons"
+import { SearchButton } from "./search-button"
 
 interface ChatUIProps {}
 
@@ -218,8 +219,12 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="relative w-full min-w-[300px] items-end px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]">
+      <div className="relative w-full min-w-[300px] px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]">
         <ChatInput />
+      </div>
+
+      <div className="absolute bottom-4 right-[60px] hidden md:block lg:bottom-8 lg:right-[80px]">
+        <SearchButton />
       </div>
 
       <div className="absolute bottom-2 right-2 hidden md:block lg:bottom-4 lg:right-4">

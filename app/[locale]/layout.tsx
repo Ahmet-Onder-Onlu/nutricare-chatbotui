@@ -13,7 +13,7 @@ import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 const APP_NAME = "Chatbot UI"
-const APP_DEFAULT_TITLE = "Chatbot UI"
+const APP_DEFAULT_TITLE = "NutriCare"
 const APP_TITLE_TEMPLATE = "%s - Chatbot UI"
 const APP_DESCRIPTION = "Chabot UI PWA!"
 
