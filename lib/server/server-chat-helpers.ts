@@ -58,8 +58,12 @@ function addApiKeysToProfile(profile: Tables<"profiles">) {
   }
 
   for (const [envKey, profileKey] of Object.entries(apiKeys)) {
-    if (process.env[envKey]) {
-      ;(profile as any)[profileKey] = process.env[envKey]
+    const environmentValue = process.env[envKey]?.trim()
+    const profileValue = (profile as any)[profileKey]
+    if (environmentValue) {
+      ;(profile as any)[profileKey] = environmentValue
+    } else if (typeof profileValue === "string") {
+      ;(profile as any)[profileKey] = profileValue.trim()
     }
   }
 

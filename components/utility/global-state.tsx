@@ -78,7 +78,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [userInput, setUserInput] = useState<string>("")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatSettings, setChatSettings] = useState<ChatSettings>({
-    model: "gpt-4.1-mini",
+    model: "gemini-3.5-flash-lite",
     prompt:
       "Your scope will be medicine and healthy nutrition. And whenever you give advice to folk about any these areas please express that they should consult their doctor or a professional to be sure about their question. And then give the answer being clear. Be nice and helper",
     temperature: 0.5,

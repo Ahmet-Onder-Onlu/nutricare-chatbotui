@@ -79,14 +79,17 @@ export async function POST(request: Request) {
 
     if (errorMessage.toLowerCase().includes("api key not found")) {
       errorMessage =
-        "OpenAI API Key not found. Please set it in your profile settings."
+        "Sohbet için API anahtarı bulunamadı. Hesap ayarlarınızı kontrol edin veya site yöneticisine bildirin."
     } else if (errorMessage.toLowerCase().includes("incorrect api key")) {
       errorMessage =
-        "OpenAI API Key is incorrect. Please fix it in your profile settings."
+        "Sohbet servisinin API anahtarı geçersiz. Lütfen site yöneticisine bildirin."
     }
 
+    errorMessage = errorMessage.replace(/sk-[A-Za-z0-9_-]+/g, "[gizli anahtar]")
+
     return new Response(JSON.stringify({ message: errorMessage }), {
-      status: errorCode
+      status: errorCode,
+      headers: { "Content-Type": "application/json" }
     })
   }
 }
