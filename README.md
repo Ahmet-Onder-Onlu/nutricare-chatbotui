@@ -1,3 +1,32 @@
+# NutriCare
+
+İlaç, ilaç-besin etkileşimi ve klinik beslenme bilgi asistanı. Next.js + Supabase Auth/Postgres + model API kullanır. Aşağıdaki eski Chatbot UI belgeleri upstream referansıdır; NutriCare kurulumu için bu bölüm geçerlidir.
+
+## Kurulum ve Vercel
+
+1. `npm ci` çalıştırın. `.env.local.example` dosyasını `.env.local` olarak kopyalayıp Supabase URL/anon anahtarını ve `GOOGLE_GEMINI_API_KEY` değerini ayarlayın. Anahtarları Git'e eklemeyin. `SUPABASE_SERVICE_ROLE_KEY` yalnızca sunucuda dosya işlemleri gibi yönetim gerektiren eski uçlar içindir.
+2. Mevcut Supabase projesini `supabase link --project-ref <project-ref>` ile bağlayın; `supabase db push --dry-run` ile kontrol edip `supabase db push` çalıştırın. Yeni hesap onarımı için `20261030000000_repair_nutricare_accounts.sql` mutlaka uygulanmalıdır. Mevcut üretim veritabanında `db reset` kullanmayın.
+3. Supabase Authentication > URL Configuration içinde Site URL değerini `https://www.nutricaretek.com` yapın. Redirect URLs listesine `https://www.nutricaretek.com/auth/callback`, `https://www.nutricaretek.com/auth/callback?next=/login/password` ve yerel geliştirme için karşılık gelen localhost adreslerini ekleyin. Önizleme ortamını test edecekseniz o ortamın callback adresini de ekleyin.
+4. Email sağlayıcısı ve yeni kullanıcı kaydı açık olmalıdır. Confirm email açıkken kullanıcıya onay e-postası gösterilir, onay kapalıysa doğrudan sohbet açılır. Genel kullanıma açık kayıt/onay ve şifre sıfırlama e-postaları için kendi SMTP sağlayıcınızı yapılandırın; Supabase varsayılan posta servisini genel kullanım için varsaymayın. Ücretsiz proje durmuşsa önce Resume project ile açın.
+5. Vercel'de aynı Supabase projesinin değişkenlerini ve çalışan bir `GOOGLE_GEMINI_API_KEY` tanımlayın, yeni deployment oluşturun. Varsayılan sohbet modeli `gemini-3.5-flash-lite` olur. Supabase ücretsiz katmanı veritabanı/kimlik doğrulama sağlar; model API kullanımı ayrı bir hizmettir ve geçerli anahtar/kota gerektirir.
+6. Yerelde `npm run dev`, doğrulama için `npm run type-check`, `npm test -- --runInBand` ve `npm run build` kullanın. Ayrı Playwright projesinin bağımlılıkları kendi klasöründe kurulmalıdır.
+
+## Yanıtlar ve kaynaklar
+
+Gemini ve OpenAI sohbet uçları, son kullanıcı mesajındaki sözcükleri `public.nutricare.drug` ve `active_sub` alanlarında arar; en fazla altı kaydı RLS ile oturum açmış kullanıcı olarak okur ve yanıta kaynak bağlamı ekler. Bu yapı ilaç tablosu için sözcük eşleştirmeli retrieval'dır; mevcut dosya/embedding retrieval akışı ayrıca kullanılabilir. Veritabanına gerçek, gözden geçirilmiş ilaç kayıtları aktarılmalıdır; örnek klinik veri otomatik eklenmez. Eşleşmeyen soru için kaynak uydurulmaz; veritabanı erişim hatası kullanıcıya bildirilir. Gemini/OpenAI dışındaki model sağlayıcılarının eski uçları bu otomatik NutriCare sorgusunu kullanmaz; üretimde varsayılan Gemini yolunu kullanın.
+
+Asistan eczacılık/klinik yaklaşımıyla bilgi verir, gerçek sağlık profesyoneli olduğunu iddia etmez ve kişiye özel reçete/doz değişikliği yapmaz. Klinik kullanıma açmadan önce içerik ve kaynakların yetkin sağlık profesyonellerince değerlendirilmesi gerekir.
+
+## Üretim kontrolü
+
+- Yeni e-posta ile kayıt, gerekiyorsa e-posta onayı, giriş ve ana sohbet alanına yönlendirme.
+- Hatalı şifre ve süresi dolmuş onay bağlantısında anlaşılır hata.
+- Şifre sıfırlama bağlantısının parola ekranına ulaşması.
+- İlaç adı/etken madde sorusunda kayıt kimliğiyle kaynaklı yanıt; eşleşme yoksa açık bildirim.
+- Çıkış sonrası giriş, sayfa yenilemesi ve süresi dolan oturumun yenilenmesi.
+
+---
+
 # Chatbot UI
 
 The open-source AI chat app for everyone.

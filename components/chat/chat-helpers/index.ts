@@ -270,12 +270,14 @@ export const fetchChatResponse = async (
       )
     }
 
-    const errorData = await response.json()
-
+    const errorData = await response.json().catch(() => ({
+      message: `Sohbet servisine erişilemedi (${response.status}). Lütfen tekrar deneyin.`
+    }))
     toast.error(errorData.message)
 
     setIsGenerating(false)
     setChatMessages(prevMessages => prevMessages.slice(0, -2))
+    throw new Error(errorData.message)
   }
 
   return response

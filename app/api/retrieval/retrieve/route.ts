@@ -23,6 +23,19 @@ export async function POST(request: Request) {
 
     const profile = await getServerProfile()
 
+    const { data: ownedFiles, error: ownershipError } = await supabaseAdmin
+      .from("files")
+      .select("id")
+      .eq("user_id", profile.user_id)
+      .in("id", uniqueFileIds)
+    if (ownershipError) throw ownershipError
+    if (ownedFiles.length !== uniqueFileIds.length) {
+      return Response.json(
+        { message: "Bu dosyalara erişim izniniz yok." },
+        { status: 403 }
+      )
+    }
+
     if (embeddingsProvider === "openai") {
       if (profile.use_azure_openai) {
         checkApiKey(profile.azure_openai_api_key, "Azure OpenAI")
@@ -93,7 +106,8 @@ export async function POST(request: Request) {
       status: 200
     })
   } catch (error: any) {
-    const errorMessage = error.error?.message || "An unexpected error occurred"
+    const errorMessage =
+      error.message || error.error?.message || "An unexpected error occurred"
     const errorCode = error.status || 500
     return new Response(JSON.stringify({ message: errorMessage }), {
       status: errorCode

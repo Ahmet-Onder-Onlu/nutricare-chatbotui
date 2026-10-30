@@ -24,6 +24,20 @@ export async function POST(req: Request) {
 
     const profile = await getServerProfile()
 
+    const { data: ownedFile, error: ownershipError } = await supabaseAdmin
+      .from("files")
+      .select("id")
+      .eq("id", fileId)
+      .eq("user_id", profile.user_id)
+      .maybeSingle()
+    if (ownershipError) throw ownershipError
+    if (!ownedFile) {
+      return Response.json(
+        { message: "Bu dosyaya erişim izniniz yok." },
+        { status: 403 }
+      )
+    }
+
     if (embeddingsProvider === "openai") {
       if (profile.use_azure_openai) {
         checkApiKey(profile.azure_openai_api_key, "Azure OpenAI")

@@ -81,7 +81,17 @@ const GPT3_5Turbo: LLM = {
   }
 }
 
+const GPT41Mini: LLM = {
+  modelId: "gpt-4.1-mini",
+  modelName: "GPT-4.1 mini",
+  provider: "openai",
+  hostedId: "gpt-4.1-mini",
+  platformLink: OPENAI_PLATORM_LINK,
+  imageInput: true
+}
+
 export const OPENAI_LLM_LIST: LLM[] = [
+  GPT41Mini,
   GPT4o,
   GPT4Turbo,
   GPT4Vision,

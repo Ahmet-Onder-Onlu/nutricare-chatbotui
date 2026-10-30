@@ -12,7 +12,7 @@ const buildBasePrompt = (
   let fullPrompt = ""
 
   if (assistant) {
-    fullPrompt += `<INJECT ROLE>\nYou are not an AI. You are ${assistant.name}.\n</INJECT ROLE>\n\n`
+    fullPrompt += `<INJECT ROLE>\nYou are an AI assistant named ${assistant.name}.\n</INJECT ROLE>\n\n`
   }
 
   fullPrompt += `Today is ${new Date().toLocaleDateString()}.\n\n`
@@ -209,7 +209,9 @@ function adaptSingleMessageForGoogleGemini(message: any) {
   }
 
   let role = "user"
-  if (["user", "system"].includes(message.role)) {
+  if (message.role === "system") {
+    role = "system"
+  } else if (message.role === "user") {
     role = "user"
   } else if (message.role === "assistant") {
     role = "model"
