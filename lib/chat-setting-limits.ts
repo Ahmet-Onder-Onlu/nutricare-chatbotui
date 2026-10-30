@@ -8,6 +8,12 @@ type ChatSettingLimits = {
 }
 
 export const CHAT_SETTING_LIMITS: Record<LLMID, ChatSettingLimits> = {
+  "gpt-4.1-mini": {
+    MIN_TEMPERATURE: 0,
+    MAX_TEMPERATURE: 2,
+    MAX_TOKEN_OUTPUT_LENGTH: 32768,
+    MAX_CONTEXT_LENGTH: 1047576
+  },
   // ANTHROPIC MODELS
   "claude-2.1": {
     MIN_TEMPERATURE: 0.0,

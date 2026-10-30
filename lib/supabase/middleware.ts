@@ -24,11 +24,11 @@ export const createClient = (request: NextRequest) => {
             value,
             ...options
           })
+          const previousCookies = response.cookies.getAll()
           response = NextResponse.next({
-            request: {
-              headers: request.headers
-            }
+            request: { headers: request.headers }
           })
+          previousCookies.forEach(cookie => response.cookies.set(cookie))
           response.cookies.set({
             name,
             value,
@@ -42,11 +42,11 @@ export const createClient = (request: NextRequest) => {
             value: "",
             ...options
           })
+          const previousCookies = response.cookies.getAll()
           response = NextResponse.next({
-            request: {
-              headers: request.headers
-            }
+            request: { headers: request.headers }
           })
+          previousCookies.forEach(cookie => response.cookies.set(cookie))
           response.cookies.set({
             name,
             value: "",
@@ -57,5 +57,10 @@ export const createClient = (request: NextRequest) => {
     }
   )
 
-  return { supabase, response }
+  return {
+    supabase,
+    get response() {
+      return response
+    }
+  }
 }

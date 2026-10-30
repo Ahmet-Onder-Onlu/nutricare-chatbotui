@@ -12,9 +12,7 @@ export const Brand: FC<BrandProps> = ({ theme = "dark" }) => {
   return (
     <Link
       className="flex cursor-pointer flex-col items-center hover:opacity-50"
-      href="https://www.chatbotui.com"
-      target="_blank"
-      rel="noopener noreferrer"
+      href="/"
     >
       <div className="mb-2">
         <ChatbotUISVG theme={theme === "dark" ? "dark" : "light"} scale={0.3} />

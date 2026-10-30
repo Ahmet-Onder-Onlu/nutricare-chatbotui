@@ -3,15 +3,28 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SubmitButton } from "@/components/ui/submit-button"
 import { createClient } from "@/lib/supabase/server"
-import { Database } from "@/supabase/types"
-import { createServerClient } from "@supabase/ssr"
 import { get } from "@vercel/edge-config"
 import { Metadata } from "next"
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
-  title: "Login"
+  title: "NutriCare | Giriş"
+}
+
+async function enterChat(client: ReturnType<typeof createClient>) {
+  const { data: workspaceId, error } = await client.rpc(
+    "ensure_nutricare_account"
+  )
+  if (error || !workspaceId) {
+    return redirect(
+      "/login?message=" +
+        encodeURIComponent(
+          "Hesap çalışma alanı hazırlanamadı. Supabase migration dosyalarının uygulandığını kontrol edin."
+        )
+    )
+  }
+  return redirect(`/${workspaceId}/chat`)
 }
 
 export default async function Login({
@@ -19,66 +32,33 @@ export default async function Login({
 }: {
   searchParams: { message: string }
 }) {
-  const cookieStore = cookies()
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        }
-      }
-    }
-  )
-  const session = (await supabase.auth.getSession()).data.session
+  const supabase = createClient(cookies())
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
 
-  if (session) {
-    const { data: homeWorkspace, error } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .eq("is_home", true)
-      .single()
-
-    if (!homeWorkspace) {
-      throw new Error(error.message)
-    }
-
-    return redirect(`/${homeWorkspace.id}/chat`)
-  }
+  if (user && !searchParams?.message) return enterChat(supabase)
 
   const signIn = async (formData: FormData) => {
     "use server"
 
-    const email = formData.get("email") as string
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase()
     const password = formData.get("password") as string
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
 
     if (error) {
-      return redirect(`/login?message=${error.message}`)
+      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
     }
 
-    const { data: homeWorkspace, error: homeWorkspaceError } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("user_id", data.user.id)
-      .eq("is_home", true)
-      .single()
-
-    if (!homeWorkspace) {
-      throw new Error(
-        homeWorkspaceError?.message || "An unexpected error occurred"
-      )
-    }
-
-    return redirect(`/${homeWorkspace.id}/chat`)
+    return enterChat(supabase)
   }
 
   const getEnvVarOrEdgeConfigValue = async (name: string) => {
@@ -93,19 +73,25 @@ export default async function Login({
   const signUp = async (formData: FormData) => {
     "use server"
 
-    const email = formData.get("email") as string
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase()
     const password = formData.get("password") as string
 
     const emailDomainWhitelistPatternsString = await getEnvVarOrEdgeConfigValue(
       "EMAIL_DOMAIN_WHITELIST"
     )
     const emailDomainWhitelist = emailDomainWhitelistPatternsString?.trim()
-      ? emailDomainWhitelistPatternsString?.split(",")
+      ? emailDomainWhitelistPatternsString
+          .split(",")
+          .map(value => value.trim().toLowerCase())
       : []
     const emailWhitelistPatternsString =
       await getEnvVarOrEdgeConfigValue("EMAIL_WHITELIST")
     const emailWhitelist = emailWhitelistPatternsString?.trim()
-      ? emailWhitelistPatternsString?.split(",")
+      ? emailWhitelistPatternsString
+          .split(",")
+          .map(value => value.trim().toLowerCase())
       : []
 
     // If there are whitelist patterns, check if the email is allowed to sign up
@@ -114,7 +100,7 @@ export default async function Login({
       const emailMatch = emailWhitelist?.includes(email)
       if (!domainMatch && !emailMatch) {
         return redirect(
-          `/login?message=Email ${email} is not allowed to sign up.`
+          `/login?message=${encodeURIComponent("Bu e-posta adresiyle kayıt olunmasına izin verilmiyor.")}`
         )
       }
     }
@@ -122,31 +108,35 @@ export default async function Login({
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // USE IF YOU WANT TO SEND EMAIL VERIFICATION, ALSO CHANGE TOML FILE
-        // emailRedirectTo: `${origin}/auth/callback`
+        emailRedirectTo: `${headers().get("origin")}/auth/callback`
       }
     })
 
     if (error) {
       console.error(error)
-      return redirect(`/login?message=${error.message}`)
+      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
     }
 
-    return redirect("/setup")
-
-    // USE IF YOU WANT TO SEND EMAIL VERIFICATION, ALSO CHANGE TOML FILE
-    // return redirect("/login?message=Check email to continue sign in process")
+    if (data.session) return enterChat(supabase)
+    return redirect(
+      "/login?message=" +
+        encodeURIComponent(
+          "Hesabınızı etkinleştirmek için e-posta adresinize gönderilen onay bağlantısına tıklayın. Ardından giriş yapabilirsiniz."
+        )
+    )
   }
 
   const handleResetPassword = async (formData: FormData) => {
     "use server"
 
     const origin = headers().get("origin")
-    const email = formData.get("email") as string
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase()
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
 
@@ -155,7 +145,7 @@ export default async function Login({
     })
 
     if (error) {
-      return redirect(`/login?message=${error.message}`)
+      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
     }
 
     return redirect("/login?message=Check email to reset password")
@@ -170,43 +160,48 @@ export default async function Login({
         <Brand />
 
         <Label className="text-md mt-4" htmlFor="email">
-          Email
+          E-posta
         </Label>
         <Input
           className="mb-3 rounded-md border bg-inherit px-4 py-2"
+          id="email"
+          type="email"
+          autoComplete="email"
           name="email"
           placeholder="you@example.com"
           required
         />
 
         <Label className="text-md" htmlFor="password">
-          Password
+          Şifre
         </Label>
         <Input
           className="mb-6 rounded-md border bg-inherit px-4 py-2"
+          id="password"
+          autoComplete="current-password"
           type="password"
           name="password"
           placeholder="••••••••"
         />
 
         <SubmitButton className="mb-2 rounded-md bg-blue-700 px-4 py-2 text-white">
-          Login
+          Giriş yap
         </SubmitButton>
 
         <SubmitButton
           formAction={signUp}
           className="border-foreground/20 mb-2 rounded-md border px-4 py-2"
         >
-          Sign Up
+          Kayıt ol
         </SubmitButton>
 
         <div className="text-muted-foreground mt-1 flex justify-center text-sm">
-          <span className="mr-1">Forgot your password?</span>
+          <span className="mr-1">Şifrenizi mi unuttunuz?</span>
           <button
             formAction={handleResetPassword}
             className="text-primary ml-1 underline hover:opacity-80"
           >
-            Reset
+            Sıfırla
           </button>
         </div>
 

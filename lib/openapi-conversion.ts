@@ -133,7 +133,10 @@ export const openapiToFunctions = async (
 
         schema.properties.parameters = {
           type: "object",
-          properties: paramProperties
+          properties: paramProperties,
+          required: params
+            .filter((param: any) => param.required)
+            .map((param: any) => param.name)
         }
       }
 

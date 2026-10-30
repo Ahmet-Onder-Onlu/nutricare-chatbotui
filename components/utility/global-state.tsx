@@ -25,7 +25,7 @@ import {
 } from "@/types"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { FC, useEffect, useState } from "react"
 
 interface GlobalStateProps {
@@ -34,6 +34,7 @@ interface GlobalStateProps {
 
 export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const router = useRouter()
+  const pathname = usePathname()
 
   // PROFILE STORE
   const [profile, setProfile] = useState<Tables<"profiles"> | null>(null)
@@ -77,7 +78,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [userInput, setUserInput] = useState<string>("")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatSettings, setChatSettings] = useState<ChatSettings>({
-    model: "gpt-4-turbo-preview",
+    model: "gpt-4.1-mini",
     prompt:
       "Your scope will be medicine and healthy nutrition. And whenever you give advice to folk about any these areas please express that they should consult their doctor or a professional to be sure about their question. And then give the answer being clear. Be nice and helper",
     temperature: 0.5,
@@ -162,7 +163,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
       const profile = await getProfileByUserId(user.id)
       setProfile(profile)
 
-      if (!profile.has_onboarded) {
+      if (!profile.has_onboarded && !pathname.endsWith("/login/password")) {
         return router.push("/setup")
       }
 
