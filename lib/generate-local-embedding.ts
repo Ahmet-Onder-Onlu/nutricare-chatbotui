@@ -1,17 +1,7 @@
-import { pipeline } from "@xenova/transformers"
-
-export async function generateLocalEmbedding(content: string) {
-  const generateEmbedding = await pipeline(
-    "feature-extraction",
-    "Xenova/all-MiniLM-L6-v2"
+export async function generateLocalEmbedding(
+  _content: string
+): Promise<number[]> {
+  throw new Error(
+    "Yerel embedding desteği kaldırıldı. Dosya araması için OpenAI embeddings kullanın."
   )
-
-  const output = await generateEmbedding(content, {
-    pooling: "mean",
-    normalize: true
-  })
-
-  const embedding = Array.from(output.data)
-
-  return embedding
 }

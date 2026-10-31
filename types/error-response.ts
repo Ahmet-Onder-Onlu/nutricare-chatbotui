@@ -9,7 +9,7 @@ export type ErrorResponse = {
 
 export const ErrorResponseSchema = z.object({
   error: z.object({
-    code: z.number({ coerce: true }).default(500),
+    code: z.coerce.number().default(500),
     message: z.string().default("Internal Server Error")
   })
 })

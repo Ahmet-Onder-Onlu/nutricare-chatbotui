@@ -165,7 +165,6 @@ export async function POST(req: Request) {
       status: 200
     })
   } catch (error: any) {
-    console.log(`Error in retrieval/process: ${error.stack}`)
     const errorMessage = error?.message || "An unexpected error occurred"
     const errorCode = error.status || 500
     return new Response(JSON.stringify({ message: errorMessage }), {

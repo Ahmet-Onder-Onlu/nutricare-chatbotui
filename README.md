@@ -1,348 +1,109 @@
-# NutriCare
+# NutriCare 🌿
 
-İlaç, ilaç-besin etkileşimi ve klinik beslenme bilgi asistanı. Next.js + Supabase Auth/Postgres + model API kullanır. Aşağıdaki eski Chatbot UI belgeleri upstream referansıdır; NutriCare kurulumu için bu bölüm geçerlidir.
+**Beslenme ve ilaç–besin etkileşimleri için kaynaklı sohbet asistanı.**
 
-## Kurulum ve Vercel
+[🌐 Canlı uygulama — www.nutricaretek.com](https://www.nutricaretek.com)
 
-1. `npm ci` çalıştırın. `.env.local.example` dosyasını `.env.local` olarak kopyalayıp Supabase URL/anon anahtarını ve `GOOGLE_GEMINI_API_KEY` değerini ayarlayın. Anahtarları Git'e eklemeyin. `SUPABASE_SERVICE_ROLE_KEY` yalnızca sunucuda dosya işlemleri gibi yönetim gerektiren eski uçlar içindir.
-2. Mevcut Supabase projesini `supabase link --project-ref <project-ref>` ile bağlayın; `supabase db push --dry-run` ile kontrol edip `supabase db push` çalıştırın. Yeni hesap onarımı için `20261030000000_repair_nutricare_accounts.sql` mutlaka uygulanmalıdır. Mevcut üretim veritabanında `db reset` kullanmayın.
-3. Supabase Authentication > URL Configuration içinde Site URL değerini `https://www.nutricaretek.com` yapın. Redirect URLs listesine `https://www.nutricaretek.com/auth/callback`, `https://www.nutricaretek.com/auth/callback?next=/login/password` ve yerel geliştirme için karşılık gelen localhost adreslerini ekleyin. Önizleme ortamını test edecekseniz o ortamın callback adresini de ekleyin.
-4. Email sağlayıcısı ve yeni kullanıcı kaydı açık olmalıdır. Confirm email açıkken kullanıcıya onay e-postası gösterilir, onay kapalıysa doğrudan sohbet açılır. Genel kullanıma açık kayıt/onay ve şifre sıfırlama e-postaları için kendi SMTP sağlayıcınızı yapılandırın; Supabase varsayılan posta servisini genel kullanım için varsaymayın. Ücretsiz proje durmuşsa önce Resume project ile açın.
-5. Vercel'de aynı Supabase projesinin değişkenlerini ve çalışan bir `GOOGLE_GEMINI_API_KEY` tanımlayın, yeni deployment oluşturun. Varsayılan sohbet modeli `gemini-3.5-flash-lite` olur. Supabase ücretsiz katmanı veritabanı/kimlik doğrulama sağlar; model API kullanımı ayrı bir hizmettir ve geçerli anahtar/kota gerektirir.
-6. Yerelde `npm run dev`, doğrulama için `npm run type-check`, `npm test -- --runInBand` ve `npm run build` kullanın. Ayrı Playwright projesinin bağımlılıkları kendi klasöründe kurulmalıdır.
+NutriCare, sorudaki besin ve ilaç adlarını çıkarır; Supabase/Postgres kayıtlarını MCP üzerinden sorgular ve yanıtını ilgili kayıtlar ile kaynaklarına dayandırır. Veri bulunmadığında bunu belirtir. Belirsiz klinik durumlarda hekime danışmayı önerir; kendisini gerçek hekim olarak tanıtmaz, tanı veya kişiye özel reçete üretmez.
 
-## Yanıtlar ve kaynaklar
+## Kısa tanıtım
 
-Gemini ve OpenAI sohbet uçları, son kullanıcı mesajındaki sözcükleri `public.nutricare.drug` ve `active_sub` alanlarında arar; en fazla altı kaydı RLS ile oturum açmış kullanıcı olarak okur ve yanıta kaynak bağlamı ekler. Bu yapı ilaç tablosu için sözcük eşleştirmeli retrieval'dır; mevcut dosya/embedding retrieval akışı ayrıca kullanılabilir. Veritabanına gerçek, gözden geçirilmiş ilaç kayıtları aktarılmalıdır; örnek klinik veri otomatik eklenmez. Eşleşmeyen soru için kaynak uydurulmaz; veritabanı erişim hatası kullanıcıya bildirilir. Gemini/OpenAI dışındaki model sağlayıcılarının eski uçları bu otomatik NutriCare sorgusunu kullanmaz; üretimde varsayılan Gemini yolunu kullanın.
+![NutriCare sohbet ve veritabanı araması](public/readme/nutricare-demo.gif)
 
-Asistan eczacılık/klinik yaklaşımıyla bilgi verir, gerçek sağlık profesyoneli olduğunu iddia etmez ve kişiye özel reçete/doz değişikliği yapmaz. Klinik kullanıma açmadan önce içerik ve kaynakların yetkin sağlık profesyonellerince değerlendirilmesi gerekir.
+Demo, uygulamanın gerçek ekranlarından kaydedilir. Örnek soru genel bilgilendirme içindir; kullanıcıya ait sağlık verisi veya API anahtarı içermez.
 
-## Üretim kontrolü
+## Neler sunar?
 
-- Yeni e-posta ile kayıt, gerekiyorsa e-posta onayı, giriş ve ana sohbet alanına yönlendirme.
-- Hatalı şifre ve süresi dolmuş onay bağlantısında anlaşılır hata.
-- Şifre sıfırlama bağlantısının parola ekranına ulaşması.
-- İlaç adı/etken madde sorusunda kayıt kimliğiyle kaynaklı yanıt; eşleşme yoksa açık bildirim.
-- Çıkış sonrası giriş, sayfa yenilemesi ve süresi dolan oturumun yenilenmesi.
+- **Kaynaklı sohbet:** Besin ve ilaç adlarının JSON çıkarımı → doğrulama → MCP aracı → yapılandırılmış veriyle RAG → kayıt kimlikli yanıt.
+- **Besin / ilaç araması:** Etken madde, etkileşen ilaç, mekanizma, risk grubu, yönetim ve orijinal kaynak alanları.
+- **Sohbet oturumları ve klasörler:** Geçmişte arama; klasör oluşturma, yeniden adlandırma ve sohbetleri klasörlere taşıma. Klasör kaldırıldığında sohbetler korunur.
+- **İki sekmeli ayarlar:** Yalnızca model seçimi ve kişisel Gemini API anahtarı. Kişisel anahtar verilmezse uygulamanın mevcut anahtarı kullanılır.
+- **Bekleme animasyonu:** Yanıtın ilk parçasına kadar logo küçülür; daire, üçgen ve kare çizimleri oynar. Yanıt gelince animasyon durur. Azaltılmış hareket tercihi desteklenir.
+- **E-posta doğrulaması:** Kayıt onayı, doğrulama postasını yeniden gönderme ve şifre sıfırlama.
 
----
+## Mimari
 
-# Chatbot UI
-
-The open-source AI chat app for everyone.
-
-<img src="./public/readme/screenshot.png" alt="Chatbot UI" width="600">
-
-## Demo
-
-View the latest demo [here](https://x.com/mckaywrigley/status/1738273242283151777?s=20).
-
-## Updates
-
-Hey everyone! I've heard your feedback and am working hard on a big update.
-
-Things like simpler deployment, better backend compatibility, and improved mobile layouts are on their way.
-
-Be back soon.
-
--- Mckay
-
-## Official Hosted Version
-
-Use Chatbot UI without having to host it yourself!
-
-Find the official hosted version of Chatbot UI [here](https://chatbotui.com).
-
-## Sponsor
-
-If you find Chatbot UI useful, please consider [sponsoring](https://github.com/sponsors/mckaywrigley) me to support my open-source work :)
-
-## Issues
-
-We restrict "Issues" to actual issues related to the codebase.
-
-We're getting excessive amounts of issues that amount to things like feature requests, cloud provider issues, etc.
-
-If you are having issues with things like setup, please refer to the "Help" section in the "Discussions" tab above.
-
-Issues unrelated to the codebase will likely be closed immediately.
-
-## Discussions
-
-We highly encourage you to participate in the "Discussions" tab above!
-
-Discussions are a great place to ask questions, share ideas, and get help.
-
-Odds are if you have a question, someone else has the same question.
-
-## Legacy Code
-
-Chatbot UI was recently updated to its 2.0 version.
-
-The code for 1.0 can be found on the `legacy` branch.
-
-## Updating
-
-In your terminal at the root of your local Chatbot UI repository, run:
-
-```bash
-npm run update
+```mermaid
+flowchart LR
+    U[Soru] --> E[Gemini: besin / ilaç çıkarımı]
+    E --> V[Şema doğrulaması]
+    V --> M[MCP: salt okunur klinik arama]
+    M --> D[(Supabase / Postgres + RLS)]
+    D --> R[Tüm eşleşen kaynak satırları]
+    R --> A[Gemini: kaynaklı yanıt]
 ```
 
-If you run a hosted instance you'll also need to run:
+MCP istemcisi ve sunucusu resmi TypeScript SDK'nın `InMemoryTransport` taşımasıyla aynı sunucu işlemi içinde çalışır. İnternete açık bir SQL/MCP yürütme endpoint'i yoktur. Klinik kaynaklar `nutricare` ve `food_interactions` tablolarında tutulur. Satırlar 200'lük sayfalarla okunur; 2.000 satır veya 120.000 karakter sınırında sonuç sessizce kesilmez, daha dar bir soru istenir. Vektör veritabanı bu yapılandırılmış klinik arama için gerekli değildir.
+
+## Yerel kurulum
 
 ```bash
-npm run db-push
-```
-
-to apply the latest migrations to your live database.
-
-## Local Quickstart
-
-Follow these steps to get your own Chatbot UI instance running locally.
-
-You can watch the full video tutorial [here](https://www.youtube.com/watch?v=9Qq3-7-HNgw).
-
-### 1. Clone the Repo
-
-```bash
-git clone https://github.com/mckaywrigley/chatbot-ui.git
-```
-
-### 2. Install Dependencies
-
-Open a terminal in the root directory of your local Chatbot UI repository and run:
-
-```bash
-npm install
-```
-
-### 3. Install Supabase & Run Locally
-
-#### Why Supabase?
-
-Previously, we used local browser storage to store data. However, this was not a good solution for a few reasons:
-
-- Security issues
-- Limited storage
-- Limits multi-modal use cases
-
-We now use Supabase because it's easy to use, it's open-source, it's Postgres, and it has a free tier for hosted instances.
-
-We will support other providers in the future to give you more options.
-
-#### 1. Install Docker
-
-You will need to install Docker to run Supabase locally. You can download it [here](https://docs.docker.com/get-docker) for free.
-
-#### 2. Install Supabase CLI
-
-**MacOS/Linux**
-
-```bash
-brew install supabase/tap/supabase
-```
-
-**Windows**
-
-```bash
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
-```
-
-#### 3. Start Supabase
-
-In your terminal at the root of your local Chatbot UI repository, run:
-
-```bash
-supabase start
-```
-
-### 4. Fill in Secrets
-
-#### 1. Environment Variables
-
-In your terminal at the root of your local Chatbot UI repository, run:
-
-```bash
+npm ci
 cp .env.local.example .env.local
+npm run dev
 ```
 
-Get the required values by running:
+Gerekli ortam değişkenleri:
+
+| Değişken | Kullanım |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase proje URL'si |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | RLS ile kullanılan public/anon anahtar |
+| `GOOGLE_GEMINI_API_KEY` | Sunucuda kalan ortak Gemini anahtarı |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yalnız sunucudaki dosya işleme işlemleri için |
+
+Kişisel Gemini anahtarı **yalnız açık sekmenin belleğinde** tutulur; localStorage, sessionStorage, sohbet kaydı veya veritabanına yazılmaz. Sayfa yenilendiğinde silinir. HTTPS üzerinden aynı uygulamanın oturum kontrollü sohbet endpoint'ine iletilir ve yalnız sabit Google Gemini sağlayıcısında kullanılır. Ortak sunucu anahtarı hiçbir yanıtta veya istemci paketinde gönderilmez. Kişisel anahtarın kotası ve kullanım bedeli kullanıcının sağlayıcı hesabına aittir.
+
+Dosya eki üzerinden embedding araması isteğe bağlıdır ve sunucuda OpenAI embeddings anahtarı gerektirir. Eski yerel ONNX embedding ve genel amaçlı LangChain yükleyicileri kaldırılmıştır; klinik MCP araması bunlara bağlı değildir.
+
+## Veritabanı ve dağıtım
 
 ```bash
-supabase status
-```
-
-Note: Use `API URL` from `supabase status` for `NEXT_PUBLIC_SUPABASE_URL`
-
-Now go to your `.env.local` file and fill in the values.
-
-If the environment variable is set, it will disable the input in the user settings.
-
-#### 2. SQL Setup
-
-In the 1st migration file `supabase/migrations/20240108234540_setup.sql` you will need to replace 2 values with the values you got above:
-
-- `project_url` (line 53): `http://supabase_kong_chatbotui:8000` (default) can remain unchanged if you don't change your `project_id` in the `config.toml` file
-- `service_role_key` (line 54): You got this value from running `supabase status`
-
-This prevents issues with storage files not being deleted properly.
-
-### 5. Install Ollama (optional for local models)
-
-Follow the instructions [here](https://github.com/jmorganca/ollama#macos).
-
-### 6. Run app locally
-
-In your terminal at the root of your local Chatbot UI repository, run:
-
-```bash
-npm run chat
-```
-
-Your local instance of Chatbot UI should now be running at [http://localhost:3000](http://localhost:3000). Be sure to use a compatible node version (i.e. v18).
-
-You can view your backend GUI at [http://localhost:54323/project/default/editor](http://localhost:54323/project/default/editor).
-
-## Hosted Quickstart
-
-Follow these steps to get your own Chatbot UI instance running in the cloud.
-
-Video tutorial coming soon.
-
-### 1. Follow Local Quickstart
-
-Repeat steps 1-4 in "Local Quickstart" above.
-
-You will want separate repositories for your local and hosted instances.
-
-Create a new repository for your hosted instance of Chatbot UI on GitHub and push your code to it.
-
-### 2. Setup Backend with Supabase
-
-#### 1. Create a new project
-
-Go to [Supabase](https://supabase.com/) and create a new project.
-
-#### 2. Get Project Values
-
-Once you are in the project dashboard, click on the "Project Settings" icon tab on the far bottom left.
-
-Here you will get the values for the following environment variables:
-
-- `Project Ref`: Found in "General settings" as "Reference ID"
-
-- `Project ID`: Found in the URL of your project dashboard (Ex: https://supabase.com/dashboard/project/<YOUR_PROJECT_ID>/settings/general)
-
-While still in "Settings" click on the "API" text tab on the left.
-
-Here you will get the values for the following environment variables:
-
-- `Project URL`: Found in "API Settings" as "Project URL"
-
-- `Anon key`: Found in "Project API keys" as "anon public"
-
-- `Service role key`: Found in "Project API keys" as "service_role" (Reminder: Treat this like a password!)
-
-#### 3. Configure Auth
-
-Next, click on the "Authentication" icon tab on the far left.
-
-In the text tabs, click on "Providers" and make sure "Email" is enabled.
-
-We recommend turning off "Confirm email" for your own personal instance.
-
-#### 4. Connect to Hosted DB
-
-Open up your repository for your hosted instance of Chatbot UI.
-
-In the 1st migration file `supabase/migrations/20240108234540_setup.sql` you will need to replace 2 values with the values you got above:
-
-- `project_url` (line 53): Use the `Project URL` value from above
-- `service_role_key` (line 54): Use the `Service role key` value from above
-
-Now, open a terminal in the root directory of your local Chatbot UI repository. We will execute a few commands here.
-
-Login to Supabase by running:
-
-```bash
-supabase login
-```
-
-Next, link your project by running the following command with the "Project ID" you got above:
-
-```bash
-supabase link --project-ref <project-id>
-```
-
-Your project should now be linked.
-
-Finally, push your database to Supabase by running:
-
-```bash
+supabase link --project-ref <project-ref>
+supabase db push --dry-run
 supabase db push
 ```
 
-Your hosted database should now be set up!
+Mevcut üretim veritabanında `db reset` kullanmayın. Migration'lar hesap hazırlama, besin kayıtları ve özel sohbet erişim sınırlarını kurar. Excel aktarımı:
 
-### 3. Setup Frontend with Vercel
+```bash
+python3 scripts/import-food-interactions.py /path/to/source.xlsx /path/to/new_migration.sql
+```
 
-Go to [Vercel](https://vercel.com/) and create a new project.
+İlk veri seti 159 satır içerir. Muz/Banana bu dosyada yoktur; uygulama olmayan etkileşim verisi üretmez. Kaynak alanları klinik açıdan bağımsız olarak doğrulanmış sayılmaz.
 
-In the setup page, import your GitHub repository for your hosted instance of Chatbot UI. Within the project Settings, in the "Build & Development Settings" section, switch Framework Preset to "Next.js".
+Vercel üretim alanı: [www.nutricaretek.com](https://www.nutricaretek.com). Ortam değişkenlerini Vercel'e tanımlayın. Supabase Auth'ta **Confirm email** açık olmalı; Site URL `https://www.nutricaretek.com` ve izinli dönüş adresleri aşağıdaki gibi ayarlanmalıdır:
 
-In environment variables, add the following from the values you got above:
+- `https://www.nutricaretek.com/auth/callback`
+- `https://www.nutricaretek.com/auth/callback?next=/login/password`
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_OLLAMA_URL` (only needed when using local Ollama models; default: `http://localhost:11434`)
+Yerel geliştirme için localhost karşılıklarını ekleyin. Genel e-posta teslimatı için kendi SMTP hizmetinizi yapılandırın. Signup e-posta şablonu, farklı tarayıcıda da doğrulanabilmesi için `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` bağlantısını kullanabilir.
 
-You can also add API keys as environment variables.
+## Güvenlik ve doğrulama
 
-- `OPENAI_API_KEY`
-- `AZURE_OPENAI_API_KEY`
-- `AZURE_OPENAI_ENDPOINT`
-- `AZURE_GPT_45_VISION_NAME`
+- Kullanıcı sohbetleri, mesajları ve klasörleri oturum/RLS sınırlarıyla korunur; eski public sohbet okuma politikaları kaldırılır.
+- Kaynak sorgularında ham SQL kullanılmaz; çıkarılan adlar doğrulanıp PostgREST filtre sözdiziminden arındırılır.
+- Kişisel anahtar biçimi, model kimliği, istek boyutu ve istek kaynağı sunucuda kontrol edilir. Hata yanıtları sağlayıcı anahtarı veya ham stack trace döndürmez.
+- Keyfi sunucu URL'si/araç şeması çalıştıran eski custom-model, araç ve diğer sağlayıcı endpoint'leri kaldırılmıştır.
+- Sistem promptu sunucuda belirlenir. Belgeler, kullanıcı mesajları ve veri satırları güvenilmeyen kaynak verisi olarak değerlendirilir.
+- Yalnız izinli Supabase görsel alanları kabul edilir. Hareket azaltma ve erişilebilir düğme etiketleri desteklenir.
 
-For the full list of environment variables, refer to the '.env.local.example' file. If the environment variables are set for API keys, it will disable the input in the user settings.
+```bash
+npm run type-check
+npm test -- --runInBand
+npm run lint
+npm run build
+npm audit
+```
 
-Click "Deploy" and wait for your frontend to deploy.
+Kod incelemesi, testler ve bağımlılık taraması tam kapsamlı bir sızma testi veya açık bulunmayacağı garantisi değildir. Yeni güvenlik duyuruları için bağımlılık taramasını düzenli tekrarlayın.
 
-Once deployed, you should be able to use your hosted instance of Chatbot UI via the URL Vercel gives you.
+## Teknoloji ve teşekkür
 
-## Contributing
+Next.js · React · TypeScript · Tailwind CSS · Supabase Auth/Postgres · Google Gemini · Model Context Protocol SDK.
 
-We are working on a guide for contributing.
+NutriCare, [Chatbot UI](https://github.com/mckaywrigley/chatbot-ui) tabanından geliştirilmiştir. Lisans bilgileri [license](license) dosyasındadır.
 
-## Contact
+Son doğrulama (31 Ekim 2026): 46 test, TypeScript ve üretim build'i geçti. `npm audit --omit=dev` üretim bağımlılıklarında **0 bulgu** bildirdi. Next.js 15.5.28 ve yamalı PostCSS kullanılır. Bu sonuç yalnız belirtilen tarihteki bağımlılık taramasını ifade eder; uygulama için mutlak güvenlik garantisi değildir.
 
-Message Mckay on [Twitter/X](https://twitter.com/mckaywrigley)
-
-### Besin etkileşimleri ve e-posta doğrulaması
-
-- `supabase db push` ile `20261031000000_food_interactions.sql` migration'ını hedef projeye uygulayın. Mevcut ilaç kayıtları korunur; besinler ayrı `food_interactions` tablosuna alınır. Excel'in 159 satırındaki tüm kaynak alanları korunmuştur. Veri setinde Muz/Banana yoktur; arama olmayan kayıt üretmez.
-- Yeni bir Excel için: `python3 scripts/import-food-interactions.py /path/to/data.xlsx /path/to/new_migration.sql`. Satır kimlikleri içerikten türetilir; aynı veri tekrar eklenmez. Kaynak güncellemeleri yeni satır sayılır, eski kayıtları otomatik silmez. Tablo/politika oluşturma bölümü yalnız ilk kurulum içindir.
-- Yerel e-posta onayı `supabase/config.toml` içinde açıktır. Yerel Supabase'i yeniden başlatın; doğrulama postalarını yerel e-posta görüntüleyicisinde kontrol edin.
-- Hosted Supabase için Authentication > Email altında **Confirm email** ayarını ayrıca açın. `config.toml` hosted Auth ayarını değiştirmez. Authentication > URL Configuration içinde Site URL'yi uygulamanın HTTPS adresine ayarlayın; `/auth/callback` ve `/auth/callback?next=/login/password` adreslerini redirect allowlist'e ekleyin. Gerçek e-posta teslimatı için SMTP yapılandırın.
-- E-posta şablonlarında varsayılan `{{ .ConfirmationURL }}` kullanılabilir. Farklı tarayıcıda doğrulama için signup şablonunda `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` kullanılabilir. Recovery şablonu için `type=recovery` kullanın. Bağlantılar tek kullanımlıktır.
-- Kayıttan sonra kullanıcı onay postasını açar. Onaylanmamış hesap giriş yapamaz; giriş ekranından yeni onay postası isteyebilir. Bu akış her girişte ikinci bir kod istemez; kayıt e-postasının doğrulanmasını şart koşar.
-
-Supabase belgeleri: [Email confirmations and SMTP](https://supabase.com/docs/guides/auth/passwords), [resend](https://supabase.com/docs/reference/javascript/auth-resend).
-
-### Mobil arama ve yapılandırılmış klinik RAG
-
-Arama düğmesi sohbet giriş alanının üstünde tüm ekran boyutlarında görünür. Dar ekranda sidebar başlangıçta kapalıdır; giriş alanı ekran genişliğine sığar.
-
-Gemini sohbet akışı: son soru ve en fazla üç önceki kullanıcı sorusundan besin/ilaç adları JSON olarak çıkarılır; Zod doğrulamasından sonra resmi MCP SDK istemcisi, aynı sunucu işlemi içindeki `InMemoryTransport` üzerinden `search_clinical_records` aracını çağırır. Her isteğin MCP sunucusu o kullanıcının Supabase oturumuna bağlıdır; RLS korunur. Dışarıya açık bir MCP endpoint'i veya SQL çalıştırma aracı yoktur.
-
-Araç `food_interactions` içinde besin/Latince adlarını ve ilaç etkileşimlerini, `nutricare` içinde ilaç ve etken maddeyi arar. Eşleşen satırların tüm alanları 200'lük sayfalarla alınır. 2.000 satırı veya 120.000 karakteri aşan kaynaklar sessizce kırpılmaz; kullanıcıdan soruyu daraltması istenir. Çıkarım başarısızsa son soruda sözcük tabanlı arama yapılır ve bu sınırlama modele bildirilir. Veritabanı hatasında kaynak yokmuş gibi yanıt üretilmez.
-
-Bu, SQL satırlarından yapılan structured RAG'dir; vektör embedding gerektirmez. Yanıt modeline kaynaklar ve kayıt kimlikleri verilir. Klinik prompt bilinmeyen/belirsiz bilgiyi açıkça belirtip hekime başvurmayı önermeyi zorunlu kılar; sistem kendisini ruhsatlı sağlık profesyoneli olarak tanıtmaz. Sohbet endpoint'i MCP SDK uyumluluğu için Node.js runtime kullanır ve 60 saniye süre sınırına sahiptir.
-
-### Sohbet odaklı son arayüz
-
-Sol panel yalnız sohbet geçmişi, geçmişte arama, yeni sohbet ve klasör oluşturma/yeniden adlandırma/silme içerir. Sohbetler açılır seçimle klasörlere taşınır; bu işlem dokunmatik ekranda da kullanılabilir. Klasör silindiğinde sohbetler korunur (`chats.folder_id` yabancı anahtarı `ON DELETE SET NULL`). Eski preset/prompt/asistan/araç/koleksiyon/model yönetim ekranları ve komut menüleri kaynak koddan kaldırılmıştır. Veritabanındaki eski kullanıcı kayıtları silinmez.
-
-Çalışma alanı tek effect ile yüklenir: oturum kontrolünden sonra yalnız çalışma alanı, sohbetler ve sohbet klasörleri paralel sorgulanır. Global başlangıçta profil ve çalışma alanları paralel alınır; uzak model listeleri, Ollama/OpenRouter keşfi ve çalışma alanı avatar indirmeleri yapılmaz. Word okuyucusu ve tokenizer ihtiyaç anında yüklenir. Kod blokları ağır dil renklendirme paketi olmadan gösterilir; kapalı PWA build katmanı kaldırılmıştır. Mobil panel sohbeti sıkıştırmadan arka plan üzerinde açılır; rota değişiminde kapanır.
+Güvenlik kaynakları: [Google Gemini anahtar güvenliği](https://ai.google.dev/gemini-api/docs/api-key), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Next.js yükseltme rehberi](https://nextjs.org/docs/app/guides/upgrading/version-15).

@@ -17,6 +17,8 @@ import { ChatMessages } from "./chat-messages"
 import { ChatScrollButtons } from "./chat-scroll-buttons"
 import { ChatSecondaryButtons } from "./chat-secondary-buttons"
 import { SearchButton } from "./search-button"
+import { ChatSettings } from "./chat-settings"
+import { ResponseActivity } from "./response-activity"
 
 interface ChatUIProps {}
 
@@ -182,6 +184,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
       </div>
 
       <div className="absolute right-4 top-1 flex h-[40px] items-center space-x-2">
+        <ChatSettings />
         <ChatSecondaryButtons />
       </div>
 
@@ -203,7 +206,8 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
       </div>
 
       <div className="relative w-full min-w-0 max-w-[800px] shrink-0 px-2 pb-3 pt-2 sm:px-4 sm:pb-8 sm:pt-5">
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <ResponseActivity />
           <SearchButton />
         </div>
         <ChatInput />

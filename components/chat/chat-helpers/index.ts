@@ -1,3 +1,4 @@
+import { getUserApiKey } from "@/lib/client/user-api-key"
 // Only used in use-chat-handler.tsx to keep it clean
 
 import { createChatFiles } from "@/db/chat-files"
@@ -259,6 +260,12 @@ export const fetchChatResponse = async (
 ) => {
   const response = await fetch(url, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(url === "/api/chat/google" && getUserApiKey()
+        ? { "X-Nutricare-Api-Key": getUserApiKey() }
+        : {})
+    },
     body: JSON.stringify(body),
     signal: controller.signal
   })
