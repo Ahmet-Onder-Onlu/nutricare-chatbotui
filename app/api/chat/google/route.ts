@@ -12,10 +12,14 @@ export const maxDuration = 60
 
 export async function POST(request: Request) {
   try {
+    if (Number(request.headers.get("content-length") || 0) > 2000000)
+      return Response.json({ message: "İstek çok büyük." }, { status: 413 })
     const { chatSettings, messages } = (await request.json()) as {
       chatSettings: ChatSettings
       messages: any[]
     }
+    if (JSON.stringify({ chatSettings, messages }).length > 2000000)
+      return Response.json({ message: "İstek çok büyük." }, { status: 413 })
     if (
       !chatSettings ||
       !Array.isArray(messages) ||
@@ -27,15 +31,36 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+    const origin = request.headers.get("origin")
+    if (origin && origin !== new URL(request.url).origin)
+      return Response.json(
+        { message: "Bu kaynaktan isteğe izin verilmiyor." },
+        { status: 403 }
+      )
     const profile = await getServerProfile()
-    checkApiKey(profile.google_gemini_api_key, "Google")
-    const { system, contents, userText } = prepareGoogleMessages(messages)
+    const personalKey = request.headers.get("x-nutricare-api-key")?.trim()
+    if (personalKey && !/^[A-Za-z0-9_-]{20,256}$/.test(personalKey))
+      return Response.json(
+        { message: "Geçersiz kişisel API anahtarı biçimi." },
+        { status: 400 }
+      )
+    const apiKey = personalKey || profile.google_gemini_api_key
+    checkApiKey(apiKey, "Google")
+    if (!/^gemini-[a-zA-Z0-9._-]{1,80}$/.test(chatSettings.model))
+      return Response.json({ message: "Geçersiz model." }, { status: 400 })
+    if (
+      !Number.isFinite(chatSettings.temperature) ||
+      chatSettings.temperature < 0 ||
+      chatSettings.temperature > 2
+    )
+      return Response.json({ message: "Geçersiz istek." }, { status: 400 })
+    const { contents, userText } = prepareGoogleMessages(messages)
     if (!userText.trim())
       return Response.json(
         { message: "Lütfen sorunuzu yazın." },
         { status: 400 }
       )
-    const genAI = new GoogleGenerativeAI(profile.google_gemini_api_key || "")
+    const genAI = new GoogleGenerativeAI(apiKey || "")
     const context = await getNutricareContext(
       userText.slice(0, 4000),
       async question => {
@@ -71,7 +96,7 @@ Sadece şu JSON nesnesini döndür: {"foods":[],"drugs":[]}. Her dizide en çok 
     )
     const model = genAI.getGenerativeModel({
       model: chatSettings.model,
-      systemInstruction: `${NUTRICARE_SYSTEM_PROMPT}\n\nKullanıcı tercihleri (yukarıdaki klinik kurallara uyduğu ölçüde):\n${system}\n\nNutriCare kaynak araması:\n${context}`
+      systemInstruction: `${NUTRICARE_SYSTEM_PROMPT}\n\nNutriCare kaynak araması:\n${context}`
     })
     const response = await model.generateContentStream({
       contents,

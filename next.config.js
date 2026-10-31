@@ -5,13 +5,7 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 module.exports = withBundleAnalyzer({
   reactStrictMode: true,
   images: {
-    remotePatterns: [
-      { protocol: "http", hostname: "localhost" },
-      { protocol: "http", hostname: "127.0.0.1" },
-      { protocol: "https", hostname: "**" }
-    ]
+    remotePatterns: [{ protocol: "https", hostname: "*.supabase.co" }]
   },
-  experimental: {
-    serverComponentsExternalPackages: ["sharp", "onnxruntime-node"]
-  }
+  serverExternalPackages: ["sharp", "pdf-parse"]
 })

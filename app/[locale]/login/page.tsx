@@ -40,14 +40,15 @@ async function enterChat(client: ReturnType<typeof createClient>) {
 export default async function Login({
   searchParams
 }: {
-  searchParams: { message: string }
+  searchParams: Promise<{ message?: string }>
 }) {
-  const supabase = createClient(cookies())
+  const params = await searchParams
+  const supabase = createClient(await cookies())
   const {
     data: { user }
   } = await supabase.auth.getUser()
 
-  if (user && !searchParams?.message) return enterChat(supabase)
+  if (user && !params?.message) return enterChat(supabase)
 
   const signIn = async (formData: FormData) => {
     "use server"
@@ -56,7 +57,7 @@ export default async function Login({
       .trim()
       .toLowerCase()
     const password = formData.get("password") as string
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createClient(cookieStore)
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -117,14 +118,14 @@ export default async function Login({
       }
     }
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createClient(cookieStore)
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${headers().get("origin")}/auth/callback`
+        emailRedirectTo: `${(await headers()).get("origin")}/auth/callback`
       }
     })
 
@@ -146,13 +147,15 @@ export default async function Login({
 
   const resendConfirmation = async (formData: FormData) => {
     "use server"
-    const supabase = createClient(cookies())
+    const supabase = createClient(await cookies())
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: String(formData.get("email") || "")
         .trim()
         .toLowerCase(),
-      options: { emailRedirectTo: `${headers().get("origin")}/auth/callback` }
+      options: {
+        emailRedirectTo: `${(await headers()).get("origin")}/auth/callback`
+      }
     })
     return redirect(
       "/login?message=" +
@@ -167,11 +170,11 @@ export default async function Login({
   const handleResetPassword = async (formData: FormData) => {
     "use server"
 
-    const origin = headers().get("origin")
+    const origin = (await headers()).get("origin")
     const email = String(formData.get("email") || "")
       .trim()
       .toLowerCase()
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createClient(cookieStore)
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -248,9 +251,9 @@ export default async function Login({
           </button>
         </div>
 
-        {searchParams?.message && (
+        {params?.message && (
           <p className="bg-foreground/10 text-foreground mt-4 p-4 text-center">
-            {searchParams.message}
+            {params.message}
           </p>
         )}
       </form>

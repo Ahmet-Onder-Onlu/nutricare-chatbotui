@@ -275,7 +275,9 @@ export const Message: FC<MessageProps> = ({
                 switch (toolInUse) {
                   case "none":
                     return (
-                      <IconCircleFilled className="animate-pulse" size={20} />
+                      <span className="text-muted-foreground text-sm">
+                        Kaynaklar inceleniyor…
+                      </span>
                     )
                   case "retrieval":
                     return (

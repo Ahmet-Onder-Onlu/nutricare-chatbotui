@@ -90,3 +90,44 @@ describe("Gemini clinical chat", () => {
     expect(generate).not.toHaveBeenCalled()
   })
 })
+
+it("rejects cross-origin requests before accessing credentials", async () => {
+  jest.clearAllMocks()
+  const base = request()
+  const response = await POST(
+    new Request(base.url, {
+      method: "POST",
+      headers: { origin: "https://attacker.invalid" },
+      body: await base.text()
+    })
+  )
+  expect(response.status).toBe(403)
+  expect(getServerProfile).not.toHaveBeenCalled()
+})
+
+it("uses a valid per-request personal key without returning it", async () => {
+  jest.clearAllMocks()
+  ;(getServerProfile as jest.Mock).mockResolvedValue({
+    google_gemini_api_key: "shared-key"
+  })
+  ;(getNutricareContext as jest.Mock).mockResolvedValue("sources")
+  const stream = (async function* () {
+    yield { candidates: [{ content: { parts: [{ text: "Yanıt" }] } }] }
+  })()
+  ;(GoogleGenerativeAI as jest.Mock).mockImplementation(() => ({
+    getGenerativeModel: () => ({
+      generateContentStream: async () => ({ stream })
+    })
+  }))
+  const base = request()
+  const key = "personal-test-key-1234567890"
+  const response = await POST(
+    new Request(base.url, {
+      method: "POST",
+      headers: { "x-nutricare-api-key": key },
+      body: await base.text()
+    })
+  )
+  expect(GoogleGenerativeAI).toHaveBeenCalledWith(key)
+  expect(await response.text()).not.toContain(key)
+})

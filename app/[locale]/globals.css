@@ -102,3 +102,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Small, local SVG animations; no animation library or network assets. */
+.response-activity svg > * { opacity: 0; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.response-activity-waiting .activity-mark { transform: scale(.2); }
+.response-activity-waiting svg > * { animation: nutricare-draw 4.8s linear infinite; }
+.response-activity-waiting .activity-triangle { animation-delay: 1.6s; }
+.response-activity-waiting .activity-square { animation-delay: 3.2s; }
+@keyframes nutricare-draw {
+  0% { opacity: 0; stroke-dashoffset: 100; }
+  2% { opacity: 1; }
+  28% { opacity: 1; stroke-dashoffset: 0; }
+  33%, 100% { opacity: 0; stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .response-activity-waiting svg > * { animation: none; }
+  .response-activity-waiting .activity-circle { opacity: .6; stroke-dashoffset: 0; }
+  .activity-mark { transition: none; }
+}

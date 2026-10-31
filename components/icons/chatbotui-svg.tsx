@@ -18,7 +18,7 @@ export const ChatbotUISVG: FC<ChatbotUISVGProps> = ({ theme, scale = 1 }) => {
       width={width}
       height={height}
       style={{ filter }}
-      alt="Chatbot UI Icon"
+      alt="NutriCare logosu"
     />
   )
 }

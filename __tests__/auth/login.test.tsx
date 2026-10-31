@@ -42,7 +42,7 @@ describe("login and signup server actions", () => {
     ;(createClient as jest.Mock).mockReturnValue(client)
   })
   async function actions() {
-    const page = await Login({ searchParams: { message: "" } })
+    const page = await Login({ searchParams: Promise.resolve({ message: "" }) })
     const formElement = page.props.children
     const children = formElement.props.children
     return {

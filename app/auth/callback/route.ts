@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     tokenHash &&
     (type === "email" || type === "signup" || type === "recovery")
   ) {
-    const supabase = createClient(cookies())
+    const supabase = createClient(await cookies())
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     }
   }
   if (code) {
-    const supabase = createClient(cookies())
+    const supabase = createClient(await cookies())
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(
