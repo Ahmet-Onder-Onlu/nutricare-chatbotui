@@ -15,14 +15,14 @@ export const searchDrugs = async (query: string) => {
 
     if (error) {
       console.error("Database error:", error)
-      return []
+      throw error
     }
 
     console.log("Search results:", data)
     return data
   } catch (error) {
     console.error("Error in searchDrugs:", error)
-    return []
+    throw error
   }
 }
 
@@ -55,4 +55,29 @@ export interface NutricareEntry {
   side_effect: string
   avoid_consume: string
   note: string | null
+}
+
+export type FoodInteraction = Tables<"food_interactions">
+
+export async function searchFoods(query: string): Promise<FoodInteraction[]> {
+  const term = query.trim().replace(/[%_\\]/g, character => `\\${character}`)
+  if (!term) return []
+  const name = /^(banana|bananas)$/i.test(term) ? "Muz" : term
+  // Separate filters avoid interpolating user input into PostgREST OR syntax.
+  const results = await Promise.all(
+    ["food_name", "latin_name"].map(column =>
+      supabase
+        .from("food_interactions")
+        .select("*")
+        .ilike(column, `%${name}%`)
+        .order("food_name")
+        .limit(200)
+    )
+  )
+  const entries = new Map<string, FoodInteraction>()
+  for (const { data, error } of results) {
+    if (error) throw error
+    for (const entry of data || []) entries.set(entry.id, entry)
+  }
+  return [...entries.values()]
 }

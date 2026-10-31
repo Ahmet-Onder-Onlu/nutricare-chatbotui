@@ -1,5 +1,10 @@
 import { FC, useEffect, useState } from "react"
-import { getDrugDetails, searchDrugs, NutricareEntry } from "@/db/nutricare"
+import {
+  searchFoods,
+  FoodInteraction,
+  searchDrugs,
+  NutricareEntry
+} from "@/db/nutricare"
 import { useDebounce } from "../../lib/hooks/use-debounce"
 import { IconSearch, IconX } from "@tabler/icons-react"
 
@@ -15,43 +20,46 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<NutricareEntry[]>([])
   const [selectedDrug, setSelectedDrug] = useState<NutricareEntry | null>(null)
+  const [foods, setFoods] = useState<FoodInteraction[]>([])
+  const [searchError, setSearchError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   const debouncedSearch = useDebounce(searchQuery, 300)
 
   useEffect(() => {
-    const fetchDrugs = async () => {
-      if (!debouncedSearch.trim()) {
-        setSearchResults([])
-        setSelectedDrug(null)
-        return
-      }
-
-      console.log("Starting search with query:", debouncedSearch)
-      setIsLoading(true)
-      try {
-        const results = await searchDrugs(debouncedSearch)
-        console.log("Search completed. Results:", results)
-        setSearchResults(results || [])
-        setSelectedDrug(null)
-      } catch (error) {
-        console.error("Error in fetchDrugs:", error)
-        setSearchResults([])
-        setSelectedDrug(null)
-      } finally {
-        setIsLoading(false)
-      }
+    let active = true
+    setSelectedDrug(null)
+    setSearchResults([])
+    setFoods([])
+    setSearchError("")
+    if (!isOpen || !debouncedSearch.trim()) {
+      setIsLoading(false)
+      return
     }
-
-    fetchDrugs()
-  }, [debouncedSearch])
-
-  const handleDrugSelect = async (drug: NutricareEntry) => {
-    console.log("Selected drug:", drug)
-    setSelectedDrug(drug)
-  }
+    setIsLoading(true)
+    Promise.all([searchDrugs(debouncedSearch), searchFoods(debouncedSearch)])
+      .then(([drugs, foodResults]) => {
+        if (!active) return
+        setSearchResults(drugs || [])
+        setFoods(foodResults)
+      })
+      .catch(() => {
+        if (active)
+          setSearchError(
+            "Arama yapılamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin."
+          )
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [debouncedSearch, isOpen])
 
   const handleClose = () => {
+    setFoods([])
+    setSearchError("")
     setSearchQuery("")
     setSearchResults([])
     setSelectedDrug(null)
@@ -69,9 +77,10 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
       />
 
       {/* Modal content */}
-      <div className="relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+      <div className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
         {/* Close button */}
         <button
+          aria-label="Kapat"
           onClick={handleClose}
           className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
@@ -80,17 +89,17 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
 
         {/* Title */}
         <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
-          İlaç Arama
+          Besin ve İlaç Arama
         </h2>
 
         {/* Search bar */}
         <div className="relative mb-6">
           <input
             type="text"
-            placeholder="İlaç adı girin..."
+            aria-label="Besin veya ilaç adı"
+            placeholder="Besin veya ilaç adı girin..."
             value={searchQuery}
             onChange={e => {
-              console.log("Search input changed:", e.target.value)
               setSearchQuery(e.target.value)
             }}
             className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-500"
@@ -106,7 +115,7 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
           {searchResults.map(drug => (
             <div
               key={drug.id}
-              onClick={() => handleDrugSelect(drug)}
+              onClick={() => setSelectedDrug(drug)}
               className="cursor-pointer rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <div className="font-medium text-gray-900 dark:text-white">
@@ -114,11 +123,72 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
               </div>
             </div>
           ))}
-          {searchQuery && !isLoading && searchResults.length === 0 && (
-            <div className="p-3 text-gray-500 dark:text-gray-400">
-              İlaç bulunamadı
-            </div>
+          {searchQuery === debouncedSearch &&
+            searchQuery &&
+            !isLoading &&
+            !searchError &&
+            searchResults.length === 0 &&
+            foods.length === 0 && (
+              <div className="p-3 text-gray-500 dark:text-gray-400">
+                Eşleşen besin veya ilaç bulunamadı. Bu, etkileşim olmadığı
+                anlamına gelmez.
+              </div>
+            )}
+        </div>
+
+        <div aria-live="polite">
+          {isLoading && (
+            <p className="mb-4 text-sm text-gray-500">Aranıyor...</p>
           )}
+          {searchError && (
+            <p role="alert" className="mb-4 text-sm text-red-600">
+              {searchError}
+            </p>
+          )}
+        </div>
+        <div className="space-y-4">
+          {foods.map(food => (
+            <article
+              key={food.id}
+              className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+            >
+              <h3 className="text-lg font-semibold">{food.food_name}</h3>
+              <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                {food.latin_name}
+              </p>
+              <dl className="space-y-3 text-sm">
+                {(
+                  [
+                    ["Etken madde", food.active_ingredient],
+                    ["Farmakolojik etki", food.pharmacological_effect],
+                    ["Etkileşen ilaçlar", food.interacting_drugs],
+                    ["Etkileşim mekanizması ve sonucu", food.mechanism],
+                    ["Başlangıç zamanı", food.onset],
+                    ["Riskli hasta grupları", food.risk_groups],
+                    ["Yönetim", food.management],
+                    ["Kaynaklar", food.sources],
+                    ["Güncelleme tarihi", food.updated_at_source]
+                  ] as const
+                )
+                  .filter(([, value]) => value && value !== "X")
+                  .map(([label, value]) => (
+                    <div key={label}>
+                      <dt className="font-medium text-gray-700 dark:text-gray-300">
+                        {label}
+                      </dt>
+                      <dd className="whitespace-pre-wrap break-words text-gray-600 dark:text-gray-400">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                {!food.interacting_drugs && (
+                  <p className="text-gray-500">
+                    Bu kaynak satırında ilaç etkileşimi bilgisi belirtilmemiş.
+                  </p>
+                )}
+              </dl>
+            </article>
+          ))}
         </div>
 
         {/* Selected drug details */}

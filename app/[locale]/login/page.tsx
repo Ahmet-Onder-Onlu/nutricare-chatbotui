@@ -13,6 +13,16 @@ export const metadata: Metadata = {
 }
 
 async function enterChat(client: ReturnType<typeof createClient>) {
+  const {
+    data: { user }
+  } = await client.auth.getUser()
+  if (!user?.email_confirmed_at) {
+    await client.auth.signOut()
+    return redirect(
+      "/login?message=" +
+        encodeURIComponent("Giriş yapmadan önce e-posta adresinizi doğrulayın.")
+    )
+  }
   const { data: workspaceId, error } = await client.rpc(
     "ensure_nutricare_account"
   )
@@ -55,7 +65,9 @@ export default async function Login({
     })
 
     if (error) {
-      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+      return redirect(
+        `/login?message=${encodeURIComponent(error.message === "Email not confirmed" ? "E-posta adresinizi doğrulayın. Gerekirse aşağıdan yeni onay bağlantısı isteyin." : error.message)}`
+      )
     }
 
     return enterChat(supabase)
@@ -118,7 +130,9 @@ export default async function Login({
 
     if (error) {
       console.error(error)
-      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+      return redirect(
+        `/login?message=${encodeURIComponent(error.message === "Email not confirmed" ? "E-posta adresinizi doğrulayın. Gerekirse aşağıdan yeni onay bağlantısı isteyin." : error.message)}`
+      )
     }
 
     if (data.session) return enterChat(supabase)
@@ -126,6 +140,26 @@ export default async function Login({
       "/login?message=" +
         encodeURIComponent(
           "Hesabınızı etkinleştirmek için e-posta adresinize gönderilen onay bağlantısına tıklayın. Ardından giriş yapabilirsiniz."
+        )
+    )
+  }
+
+  const resendConfirmation = async (formData: FormData) => {
+    "use server"
+    const supabase = createClient(cookies())
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: String(formData.get("email") || "")
+        .trim()
+        .toLowerCase(),
+      options: { emailRedirectTo: `${headers().get("origin")}/auth/callback` }
+    })
+    return redirect(
+      "/login?message=" +
+        encodeURIComponent(
+          error
+            ? "Onay e-postası gönderilemedi. Lütfen biraz sonra tekrar deneyin."
+            : "Doğrulama bekleyen bir hesabınız varsa onay bağlantısı e-posta adresinize gönderildi."
         )
     )
   }
@@ -145,7 +179,9 @@ export default async function Login({
     })
 
     if (error) {
-      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+      return redirect(
+        `/login?message=${encodeURIComponent(error.message === "Email not confirmed" ? "E-posta adresinizi doğrulayın. Gerekirse aşağıdan yeni onay bağlantısı isteyin." : error.message)}`
+      )
     }
 
     return redirect("/login?message=Check email to reset password")
@@ -193,6 +229,13 @@ export default async function Login({
           className="border-foreground/20 mb-2 rounded-md border px-4 py-2"
         >
           Kayıt ol
+        </SubmitButton>
+
+        <SubmitButton
+          formAction={resendConfirmation}
+          className="mb-2 text-sm underline"
+        >
+          Doğrulama e-postasını yeniden gönder
         </SubmitButton>
 
         <div className="text-muted-foreground mt-1 flex justify-center text-sm">

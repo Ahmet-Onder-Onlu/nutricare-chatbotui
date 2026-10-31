@@ -319,3 +319,14 @@ We are working on a guide for contributing.
 ## Contact
 
 Message Mckay on [Twitter/X](https://twitter.com/mckaywrigley)
+
+### Besin etkileşimleri ve e-posta doğrulaması
+
+- `supabase db push` ile `20261031000000_food_interactions.sql` migration'ını hedef projeye uygulayın. Mevcut ilaç kayıtları korunur; besinler ayrı `food_interactions` tablosuna alınır. Excel'in 159 satırındaki tüm kaynak alanları korunmuştur. Veri setinde Muz/Banana yoktur; arama olmayan kayıt üretmez.
+- Yeni bir Excel için: `python3 scripts/import-food-interactions.py /path/to/data.xlsx /path/to/new_migration.sql`. Satır kimlikleri içerikten türetilir; aynı veri tekrar eklenmez. Kaynak güncellemeleri yeni satır sayılır, eski kayıtları otomatik silmez. Tablo/politika oluşturma bölümü yalnız ilk kurulum içindir.
+- Yerel e-posta onayı `supabase/config.toml` içinde açıktır. Yerel Supabase'i yeniden başlatın; doğrulama postalarını yerel e-posta görüntüleyicisinde kontrol edin.
+- Hosted Supabase için Authentication > Email altında **Confirm email** ayarını ayrıca açın. `config.toml` hosted Auth ayarını değiştirmez. Authentication > URL Configuration içinde Site URL'yi uygulamanın HTTPS adresine ayarlayın; `/auth/callback` ve `/auth/callback?next=/login/password` adreslerini redirect allowlist'e ekleyin. Gerçek e-posta teslimatı için SMTP yapılandırın.
+- E-posta şablonlarında varsayılan `{{ .ConfirmationURL }}` kullanılabilir. Farklı tarayıcıda doğrulama için signup şablonunda `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` kullanılabilir. Recovery şablonu için `type=recovery` kullanın. Bağlantılar tek kullanımlıktır.
+- Kayıttan sonra kullanıcı onay postasını açar. Onaylanmamış hesap giriş yapamaz; giriş ekranından yeni onay postası isteyebilir. Bu akış her girişte ikinci bir kod istemez; kayıt e-postasının doğrulanmasını şart koşar.
+
+Supabase belgeleri: [Email confirmations and SMTP](https://supabase.com/docs/guides/auth/passwords), [resend](https://supabase.com/docs/reference/javascript/auth-resend).
