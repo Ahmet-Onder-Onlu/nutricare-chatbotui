@@ -32,6 +32,8 @@ describe("login and signup server actions", () => {
         signInWithPassword: jest
           .fn()
           .mockResolvedValue({ data: { user: { id: "user1" } }, error: null }),
+        signOut: jest.fn().mockResolvedValue({ error: null }),
+        resend: jest.fn().mockResolvedValue({ error: null }),
         signUp: jest.fn(),
         resetPasswordForEmail: jest.fn()
       },
@@ -51,12 +53,22 @@ describe("login and signup server actions", () => {
   }
   it("signs in, repairs the caller account and redirects into chat", async () => {
     const { signIn } = await actions()
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { id: "user1", email_confirmed_at: "2026-10-31" } }
+    })
     await expect(signIn(form())).rejects.toThrow("REDIRECT:/workspace1/chat")
     expect(client.auth.signInWithPassword).toHaveBeenCalledWith({
       email: "test@example.com",
       password: "test-password"
     })
     expect(client.rpc).toHaveBeenCalledWith("ensure_nutricare_account")
+  })
+  it("rejects an unverified session before accessing the workspace", async () => {
+    const { signIn } = await actions()
+    client.auth.getUser.mockResolvedValue({ data: { user: { id: "user1" } } })
+    await expect(signIn(form())).rejects.toThrow("REDIRECT:/login?message=")
+    expect(client.auth.signOut).toHaveBeenCalled()
+    expect(client.rpc).not.toHaveBeenCalled()
   })
   it("shows auth errors without querying a workspace", async () => {
     client.auth.signInWithPassword.mockResolvedValue({
@@ -90,11 +102,17 @@ describe("login and signup server actions", () => {
       error: null
     })
     const { signUp } = await actions()
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { id: "user1", email_confirmed_at: "2026-10-31" } }
+    })
     await expect(signUp(form())).rejects.toThrow("REDIRECT:/workspace1/chat")
   })
   it("reports missing database setup instead of redirecting forever", async () => {
     client.rpc.mockResolvedValue({ data: null, error: { code: "42883" } })
     const { signIn } = await actions()
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { email_confirmed_at: "2026-10-31" } }
+    })
     await expect(signIn(form())).rejects.toThrow("REDIRECT:/login?message=")
   })
 })
