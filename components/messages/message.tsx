@@ -15,7 +15,6 @@ import {
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
-import { ModelIcon } from "../models/model-icon"
 import { Button } from "../ui/button"
 import { FileIcon } from "../ui/file-icon"
 import { FilePreview } from "../ui/file-preview"
@@ -148,8 +147,6 @@ export const Message: FC<MessageProps> = ({
     image => image.path === selectedAssistant?.image_path
   )?.base64
 
-  const modelDetails = LLM_LIST.find(model => model.modelId === message.model)
-
   const fileAccumulator: Record<
     string,
     {
@@ -227,16 +224,7 @@ export const Message: FC<MessageProps> = ({
                     width={ICON_SIZE}
                   />
                 ) : (
-                  <WithTooltip
-                    display={<div>{MODEL_DATA?.modelName}</div>}
-                    trigger={
-                      <ModelIcon
-                        provider={modelDetails?.provider || "custom"}
-                        height={ICON_SIZE}
-                        width={ICON_SIZE}
-                      />
-                    }
-                  />
+                  <IconMoodSmile size={ICON_SIZE} aria-label="Asistan" />
                 )
               ) : profile?.image_url ? (
                 <Image
@@ -261,7 +249,9 @@ export const Message: FC<MessageProps> = ({
                       )?.name
                     : selectedAssistant
                       ? selectedAssistant?.name
-                      : MODEL_DATA?.modelName
+                      : MODEL_DATA?.modelName?.startsWith("Model-")
+                        ? MODEL_DATA.modelName
+                        : "Standart model"
                   : profile?.display_name ?? profile?.username}
               </div>
             </div>

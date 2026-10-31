@@ -30,6 +30,8 @@ it("shows exactly the two requested tabs without prompt or advanced controls", (
   expect(screen.getByRole("tab", { name: "API gir" })).toBeTruthy()
   expect(screen.queryByText("Advanced Settings")).toBeNull()
   expect(screen.queryByText("Prompt")).toBeNull()
+  expect(screen.getByRole("option", { name: "Model-1" })).toBeTruthy()
+  expect(screen.queryByText("Gemini Flash Lite")).toBeNull()
 })
 it("does not persist a personal key in browser storage", () => {
   const local = jest.spyOn(Storage.prototype, "setItem")

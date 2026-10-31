@@ -7,7 +7,7 @@ const GOOGLE_PLATORM_LINK = "https://ai.google.dev/"
 // Gemini 1.5 Flash
 const GEMINI_1_5_FLASH: LLM = {
   modelId: "gemini-1.5-flash",
-  modelName: "Gemini 1.5 Flash",
+  modelName: "Model-5",
   provider: "google",
   hostedId: "gemini-1.5-flash",
   platformLink: GOOGLE_PLATORM_LINK,
@@ -17,7 +17,7 @@ const GEMINI_1_5_FLASH: LLM = {
 // Gemini 1.5 Pro (UPDATED 05/28/24)
 const GEMINI_1_5_PRO: LLM = {
   modelId: "gemini-1.5-pro-latest",
-  modelName: "Gemini 1.5 Pro",
+  modelName: "Model-4",
   provider: "google",
   hostedId: "gemini-1.5-pro-latest",
   platformLink: GOOGLE_PLATORM_LINK,
@@ -27,7 +27,7 @@ const GEMINI_1_5_PRO: LLM = {
 // Gemini Pro (UPDATED 12/22/23)
 const GEMINI_PRO: LLM = {
   modelId: "gemini-pro",
-  modelName: "Gemini Pro",
+  modelName: "Model-2",
   provider: "google",
   hostedId: "gemini-pro",
   platformLink: GOOGLE_PLATORM_LINK,
@@ -37,7 +37,7 @@ const GEMINI_PRO: LLM = {
 // Gemini Pro Vision (UPDATED 12/22/23)
 const GEMINI_PRO_VISION: LLM = {
   modelId: "gemini-pro-vision",
-  modelName: "Gemini Pro Vision",
+  modelName: "Model-3",
   provider: "google",
   hostedId: "gemini-pro-vision",
   platformLink: GOOGLE_PLATORM_LINK,
@@ -46,7 +46,7 @@ const GEMINI_PRO_VISION: LLM = {
 
 const GEMINI_FLASH_LITE: LLM = {
   modelId: "gemini-3.5-flash-lite",
-  modelName: "Gemini 3.5 Flash-Lite",
+  modelName: "Model-1",
   provider: "google",
   hostedId: "gemini-3.5-flash-lite",
   platformLink: GOOGLE_PLATORM_LINK,
