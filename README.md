@@ -330,3 +330,13 @@ Message Mckay on [Twitter/X](https://twitter.com/mckaywrigley)
 - Kayıttan sonra kullanıcı onay postasını açar. Onaylanmamış hesap giriş yapamaz; giriş ekranından yeni onay postası isteyebilir. Bu akış her girişte ikinci bir kod istemez; kayıt e-postasının doğrulanmasını şart koşar.
 
 Supabase belgeleri: [Email confirmations and SMTP](https://supabase.com/docs/guides/auth/passwords), [resend](https://supabase.com/docs/reference/javascript/auth-resend).
+
+### Mobil arama ve yapılandırılmış klinik RAG
+
+Arama düğmesi sohbet giriş alanının üstünde tüm ekran boyutlarında görünür. Dar ekranda sidebar başlangıçta kapalıdır; giriş alanı ekran genişliğine sığar.
+
+Gemini sohbet akışı: son soru ve en fazla üç önceki kullanıcı sorusundan besin/ilaç adları JSON olarak çıkarılır; Zod doğrulamasından sonra resmi MCP SDK istemcisi, aynı sunucu işlemi içindeki `InMemoryTransport` üzerinden `search_clinical_records` aracını çağırır. Her isteğin MCP sunucusu o kullanıcının Supabase oturumuna bağlıdır; RLS korunur. Dışarıya açık bir MCP endpoint'i veya SQL çalıştırma aracı yoktur.
+
+Araç `food_interactions` içinde besin/Latince adlarını ve ilaç etkileşimlerini, `nutricare` içinde ilaç ve etken maddeyi arar. Eşleşen satırların tüm alanları 200'lük sayfalarla alınır. 2.000 satırı veya 120.000 karakteri aşan kaynaklar sessizce kırpılmaz; kullanıcıdan soruyu daraltması istenir. Çıkarım başarısızsa son soruda sözcük tabanlı arama yapılır ve bu sınırlama modele bildirilir. Veritabanı hatasında kaynak yokmuş gibi yanıt üretilmez.
+
+Bu, SQL satırlarından yapılan structured RAG'dir; vektör embedding gerektirmez. Yanıt modeline kaynaklar ve kayıt kimlikleri verilir. Klinik prompt bilinmeyen/belirsiz bilgiyi açıkça belirtip hekime başvurmayı önermeyi zorunlu kılar; sistem kendisini ruhsatlı sağlık profesyoneli olarak tanıtmaz. Sohbet endpoint'i MCP SDK uyumluluğu için Node.js runtime kullanır ve 60 saniye süre sınırına sahiptir.

@@ -59,7 +59,10 @@ describe("Gemini clinical chat", () => {
     const response = await POST(request())
     expect(response.status).toBe(200)
     expect(await response.text()).toBe("Yanıt")
-    expect(getNutricareContext).toHaveBeenCalledWith("Aspirin")
+    expect(getNutricareContext).toHaveBeenCalledWith(
+      "Aspirin",
+      expect.any(Function)
+    )
     expect(getModel).toHaveBeenCalledWith(
       expect.objectContaining({
         systemInstruction: expect.stringContaining("Database record source-1")
