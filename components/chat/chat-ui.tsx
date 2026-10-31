@@ -183,14 +183,13 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         />
       </div>
 
-      <div className="absolute right-4 top-1 flex h-[40px] items-center space-x-2">
-        <ChatSettings />
-        <ChatSecondaryButtons />
-      </div>
-
-      <div className="bg-secondary flex max-h-[50px] min-h-[50px] w-full items-center justify-center border-b-2 font-bold">
-        <div className="max-w-[200px] truncate sm:max-w-[400px] md:max-w-[500px] lg:max-w-[600px] xl:max-w-[700px]">
+      <div className="bg-secondary flex h-[50px] min-h-[50px] w-full items-center gap-2 border-b-2 pl-12 pr-2 font-bold sm:pr-4">
+        <div className="min-w-0 flex-1 truncate text-center">
           {selectedChat?.name || "Chat"}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <ChatSettings />
+          <ChatSecondaryButtons />
         </div>
       </div>
 

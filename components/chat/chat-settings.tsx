@@ -49,7 +49,7 @@ export const ChatSettings = () => {
       <PopoverTrigger asChild>
         <Button
           aria-label="Model ve API ayarları"
-          className="flex max-w-[240px] items-center gap-2"
+          className="flex max-w-[130px] items-center gap-2 px-2 sm:max-w-[240px]"
           variant="ghost"
         >
           <span className="truncate text-sm">
