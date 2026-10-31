@@ -209,7 +209,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
       </div>
 
       <div
-        className="flex size-full flex-col overflow-auto border-b"
+        className="flex min-h-0 w-full flex-1 flex-col overflow-auto border-b"
         onScroll={handleScroll}
       >
         <div ref={messagesStartRef} />
@@ -219,12 +219,11 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="relative w-full min-w-[300px] px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]">
+      <div className="relative w-full min-w-0 max-w-[800px] shrink-0 px-2 pb-3 pt-2 sm:px-4 sm:pb-8 sm:pt-5">
+        <div className="mb-2 flex justify-end">
+          <SearchButton />
+        </div>
         <ChatInput />
-      </div>
-
-      <div className="absolute bottom-4 right-[60px] hidden md:block lg:bottom-8 lg:right-[80px]">
-        <SearchButton />
       </div>
 
       <div className="absolute bottom-2 right-2 hidden md:block lg:bottom-4 lg:right-4">

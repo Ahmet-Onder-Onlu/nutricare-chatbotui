@@ -33,7 +33,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
     tabValue as ContentType
   )
   const [showSidebar, setShowSidebar] = useState(
-    localStorage.getItem("showSidebar") === "true"
+    window.innerWidth >= 768 && localStorage.getItem("showSidebar") === "true"
   )
   const [isDragging, setIsDragging] = useState(false)
 
@@ -99,7 +99,7 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
       </div>
 
       <div
-        className="bg-muted/50 relative flex w-screen min-w-[90%] grow flex-col sm:min-w-fit"
+        className="bg-muted/50 relative flex min-w-0 flex-1 flex-col"
         onDrop={onFileDrop}
         onDragOver={onDragOver}
         onDragEnter={handleDragEnter}
