@@ -1,7 +1,6 @@
 import { ChatbotUIContext } from "@/context/context"
 import { createDocXFile, createFile } from "@/db/files"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
-import mammoth from "mammoth"
 import { useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -88,7 +87,9 @@ export const useSelectFileHandler = () => {
           )
         ) {
           const arrayBuffer = await file.arrayBuffer()
-          const result = await mammoth.extractRawText({
+          const result = await (
+            await import("mammoth")
+          ).default.extractRawText({
             arrayBuffer
           })
 

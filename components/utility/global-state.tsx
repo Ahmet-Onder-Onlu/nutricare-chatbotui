@@ -4,14 +4,8 @@
 
 import { ChatbotUIContext } from "@/context/context"
 import { getProfileByUserId } from "@/db/profile"
-import { getWorkspaceImageFromStorage } from "@/db/storage/workspace-images"
 import { getWorkspacesByUserId } from "@/db/workspaces"
-import { convertBlobToBase64 } from "@/lib/blob-to-b64"
-import {
-  fetchHostedModels,
-  fetchOllamaModels,
-  fetchOpenRouterModels
-} from "@/lib/models/fetch-models"
+import { GOOGLE_LLM_LIST } from "@/lib/models/llm/google-llm-list"
 import { supabase } from "@/lib/supabase/browser-client"
 import { Tables } from "@/supabase/types"
 import {
@@ -35,6 +29,7 @@ interface GlobalStateProps {
 export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const router = useRouter()
   const pathname = usePathname()
+  const onboardingExempt = pathname.endsWith("/login/password")
 
   // PROFILE STORE
   const [profile, setProfile] = useState<Tables<"profiles"> | null>(null)
@@ -126,78 +121,29 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [toolInUse, setToolInUse] = useState<string>("none")
 
   useEffect(() => {
+    let active = true
     ;(async () => {
-      const profile = await fetchStartingData()
-
-      if (profile) {
-        const hostedModelRes = await fetchHostedModels(profile)
-        if (!hostedModelRes) return
-
-        setEnvKeyMap(hostedModelRes.envKeyMap)
-        setAvailableHostedModels(hostedModelRes.hostedModels)
-
-        if (
-          profile["openrouter_api_key"] ||
-          hostedModelRes.envKeyMap["openrouter"]
-        ) {
-          const openRouterModels = await fetchOpenRouterModels()
-          if (!openRouterModels) return
-          setAvailableOpenRouterModels(openRouterModels)
-        }
-      }
-
-      if (process.env.NEXT_PUBLIC_OLLAMA_URL) {
-        const localModels = await fetchOllamaModels()
-        if (!localModels) return
-        setAvailableLocalModels(localModels)
+      try {
+        const session = (await supabase.auth.getSession()).data.session
+        if (!session) return
+        const [profile, workspaces] = await Promise.all([
+          getProfileByUserId(session.user.id),
+          getWorkspacesByUserId(session.user.id)
+        ])
+        if (!active) return
+        setProfile(profile)
+        setWorkspaces(workspaces)
+        setAvailableHostedModels(GOOGLE_LLM_LIST)
+        if (!profile.has_onboarded && !onboardingExempt)
+          router.replace("/setup")
+      } catch {
+        if (active) router.replace("/login")
       }
     })()
-  }, [])
-
-  const fetchStartingData = async () => {
-    const session = (await supabase.auth.getSession()).data.session
-
-    if (session) {
-      const user = session.user
-
-      const profile = await getProfileByUserId(user.id)
-      setProfile(profile)
-
-      if (!profile.has_onboarded && !pathname.endsWith("/login/password")) {
-        return router.push("/setup")
-      }
-
-      const workspaces = await getWorkspacesByUserId(user.id)
-      setWorkspaces(workspaces)
-
-      for (const workspace of workspaces) {
-        let workspaceImageUrl = ""
-
-        if (workspace.image_path) {
-          workspaceImageUrl =
-            (await getWorkspaceImageFromStorage(workspace.image_path)) || ""
-        }
-
-        if (workspaceImageUrl) {
-          const response = await fetch(workspaceImageUrl)
-          const blob = await response.blob()
-          const base64 = await convertBlobToBase64(blob)
-
-          setWorkspaceImages(prev => [
-            ...prev,
-            {
-              workspaceId: workspace.id,
-              path: workspace.image_path,
-              base64: base64,
-              url: workspaceImageUrl
-            }
-          ])
-        }
-      }
-
-      return profile
+    return () => {
+      active = false
     }
-  }
+  }, [router, onboardingExempt])
 
   return (
     <ChatbotUIContext.Provider

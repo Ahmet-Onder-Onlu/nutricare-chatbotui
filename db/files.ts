@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase/browser-client"
 import { TablesInsert, TablesUpdate } from "@/supabase/types"
-import mammoth from "mammoth"
 import { toast } from "sonner"
 import { uploadFile } from "./storage/files"
 
@@ -68,7 +67,9 @@ export const createFileBasedOnExtension = async (
 
   if (fileExtension === "docx") {
     const arrayBuffer = await file.arrayBuffer()
-    const result = await mammoth.extractRawText({
+    const result = await (
+      await import("mammoth")
+    ).default.extractRawText({
       arrayBuffer
     })
 

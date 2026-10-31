@@ -340,3 +340,9 @@ Gemini sohbet akışı: son soru ve en fazla üç önceki kullanıcı sorusundan
 Araç `food_interactions` içinde besin/Latince adlarını ve ilaç etkileşimlerini, `nutricare` içinde ilaç ve etken maddeyi arar. Eşleşen satırların tüm alanları 200'lük sayfalarla alınır. 2.000 satırı veya 120.000 karakteri aşan kaynaklar sessizce kırpılmaz; kullanıcıdan soruyu daraltması istenir. Çıkarım başarısızsa son soruda sözcük tabanlı arama yapılır ve bu sınırlama modele bildirilir. Veritabanı hatasında kaynak yokmuş gibi yanıt üretilmez.
 
 Bu, SQL satırlarından yapılan structured RAG'dir; vektör embedding gerektirmez. Yanıt modeline kaynaklar ve kayıt kimlikleri verilir. Klinik prompt bilinmeyen/belirsiz bilgiyi açıkça belirtip hekime başvurmayı önermeyi zorunlu kılar; sistem kendisini ruhsatlı sağlık profesyoneli olarak tanıtmaz. Sohbet endpoint'i MCP SDK uyumluluğu için Node.js runtime kullanır ve 60 saniye süre sınırına sahiptir.
+
+### Sohbet odaklı son arayüz
+
+Sol panel yalnız sohbet geçmişi, geçmişte arama, yeni sohbet ve klasör oluşturma/yeniden adlandırma/silme içerir. Sohbetler açılır seçimle klasörlere taşınır; bu işlem dokunmatik ekranda da kullanılabilir. Klasör silindiğinde sohbetler korunur (`chats.folder_id` yabancı anahtarı `ON DELETE SET NULL`). Eski preset/prompt/asistan/araç/koleksiyon/model yönetim ekranları ve komut menüleri kaynak koddan kaldırılmıştır. Veritabanındaki eski kullanıcı kayıtları silinmez.
+
+Çalışma alanı tek effect ile yüklenir: oturum kontrolünden sonra yalnız çalışma alanı, sohbetler ve sohbet klasörleri paralel sorgulanır. Global başlangıçta profil ve çalışma alanları paralel alınır; uzak model listeleri, Ollama/OpenRouter keşfi ve çalışma alanı avatar indirmeleri yapılmaz. Word okuyucusu ve tokenizer ihtiyaç anında yüklenir. Kod blokları ağır dil renklendirme paketi olmadan gösterilir; kapalı PWA build katmanı kaldırılmıştır. Mobil panel sohbeti sıkıştırmadan arka plan üzerinde açılır; rota değişiminde kapanır.

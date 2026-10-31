@@ -1,6 +1,5 @@
 import { Tables } from "@/supabase/types"
 import { ChatPayload, MessageImage } from "@/types"
-import { encode } from "gpt-tokenizer"
 import { getBase64FromDataURL, getMediaTypeFromDataURL } from "@/lib/utils"
 
 const buildBasePrompt = (
@@ -51,6 +50,7 @@ export async function buildFinalMessages(
     assistant
   )
 
+  const { encode } = await import("gpt-tokenizer")
   const CHUNK_SIZE = chatSettings.contextLength
   const PROMPT_TOKENS = encode(chatSettings.prompt).length
 

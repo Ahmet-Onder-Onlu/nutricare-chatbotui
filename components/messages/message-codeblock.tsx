@@ -2,8 +2,6 @@ import { Button } from "@/components/ui/button"
 import { useCopyToClipboard } from "@/lib/hooks/use-copy-to-clipboard"
 import { IconCheck, IconCopy, IconDownload } from "@tabler/icons-react"
 import { FC, memo } from "react"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism"
 
 interface MessageCodeBlockProps {
   language: string
@@ -109,24 +107,9 @@ export const MessageCodeBlock: FC<MessageCodeBlockProps> = memo(
             </Button>
           </div>
         </div>
-        <SyntaxHighlighter
-          language={language}
-          style={oneDark}
-          // showLineNumbers
-          customStyle={{
-            margin: 0,
-            width: "100%",
-            background: "transparent"
-          }}
-          codeTagProps={{
-            style: {
-              fontSize: "14px",
-              fontFamily: "var(--font-mono)"
-            }
-          }}
-        >
-          {value}
-        </SyntaxHighlighter>
+        <pre className="overflow-x-auto p-4 text-sm">
+          <code>{value}</code>
+        </pre>
       </div>
     )
   }
