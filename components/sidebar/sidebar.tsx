@@ -1,111 +1,245 @@
+import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog"
 import { ChatbotUIContext } from "@/context/context"
+import { updateChat } from "@/db/chats"
+import { createFolder, updateFolder, deleteFolder } from "@/db/folders"
 import { Tables } from "@/supabase/types"
-import { ContentType } from "@/types"
-import { FC, useContext } from "react"
-import { SIDEBAR_WIDTH } from "../ui/dashboard"
-import { TabsContent } from "../ui/tabs"
-import { WorkspaceSwitcher } from "../utility/workspace-switcher"
-import { WorkspaceSettings } from "../workspace/workspace-settings"
-import { SidebarContent } from "./sidebar-content"
+import {
+  IconFolderPlus,
+  IconPlus,
+  IconEdit,
+  IconTrash
+} from "@tabler/icons-react"
+import { useContext, useState } from "react"
+import { toast } from "sonner"
+import { ChatItem } from "./items/chat/chat-item"
 
-interface SidebarProps {
-  contentType: ContentType
-  showSidebar: boolean
-}
-
-export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
-  const {
-    folders,
-    chats,
-    presets,
-    prompts,
-    files,
-    collections,
-    assistants,
-    tools,
-    models
-  } = useContext(ChatbotUIContext)
-
+export const Sidebar = () => {
+  const { chats, folders, setChats, setFolders, profile, selectedWorkspace } =
+    useContext(ChatbotUIContext)
+  const { handleNewChat } = useChatHandler()
+  const [search, setSearch] = useState("")
+  const [folderDialog, setFolderDialog] = useState<{
+    folder?: Tables<"folders">
+    remove?: boolean
+  } | null>(null)
+  const [name, setName] = useState("")
+  const [saving, setSaving] = useState(false)
   const chatFolders = folders.filter(folder => folder.type === "chats")
-  const presetFolders = folders.filter(folder => folder.type === "presets")
-  const promptFolders = folders.filter(folder => folder.type === "prompts")
-  const filesFolders = folders.filter(folder => folder.type === "files")
-  const collectionFolders = folders.filter(
-    folder => folder.type === "collections"
-  )
-  const assistantFolders = folders.filter(
-    folder => folder.type === "assistants"
-  )
-  const toolFolders = folders.filter(folder => folder.type === "tools")
-  const modelFolders = folders.filter(folder => folder.type === "models")
-
-  const renderSidebarContent = (
-    contentType: ContentType,
-    data: any[],
-    folders: Tables<"folders">[]
-  ) => {
-    return (
-      <SidebarContent contentType={contentType} data={data} folders={folders} />
+  const visible = chats
+    .filter(chat =>
+      chat.name.toLocaleLowerCase("tr").includes(search.toLocaleLowerCase("tr"))
     )
+    .sort((a, b) =>
+      (b.updated_at || b.created_at).localeCompare(a.updated_at || a.created_at)
+    )
+
+  const moveChat = async (chat: Tables<"chats">, folderId: string) => {
+    try {
+      const updated = await updateChat(chat.id, { folder_id: folderId || null })
+      setChats(previous =>
+        previous.map(item => (item.id === chat.id ? updated : item))
+      )
+    } catch {
+      toast.error("Sohbet taşınamadı. Lütfen tekrar deneyin.")
+    }
   }
-
-  return (
-    <TabsContent
-      className="m-0 w-full space-y-2"
-      style={{
-        // Sidebar - SidebarSwitcher
-        minWidth: showSidebar ? `calc(${SIDEBAR_WIDTH}px - 60px)` : "0px",
-        maxWidth: showSidebar ? `calc(${SIDEBAR_WIDTH}px - 60px)` : "0px",
-        width: showSidebar ? `calc(${SIDEBAR_WIDTH}px - 60px)` : "0px"
-      }}
-      value={contentType}
+  const saveFolder = async () => {
+    if (!profile || !selectedWorkspace || !folderDialog) return
+    setSaving(true)
+    try {
+      const folder = folderDialog.folder
+      if (folderDialog.remove && folder) {
+        await deleteFolder(folder.id)
+        setFolders(previous => previous.filter(item => item.id !== folder.id))
+        setChats(previous =>
+          previous.map(chat =>
+            chat.folder_id === folder.id ? { ...chat, folder_id: null } : chat
+          )
+        )
+      } else if (folder) {
+        const updated = await updateFolder(folder.id, { name: name.trim() })
+        setFolders(previous =>
+          previous.map(item => (item.id === folder.id ? updated : item))
+        )
+      } else {
+        const created = await createFolder({
+          user_id: profile.user_id,
+          workspace_id: selectedWorkspace.id,
+          name: name.trim(),
+          description: "",
+          type: "chats"
+        })
+        setFolders(previous => [...previous, created])
+      }
+      setFolderDialog(null)
+    } catch {
+      toast.error("Klasör kaydedilemedi. Lütfen tekrar deneyin.")
+    } finally {
+      setSaving(false)
+    }
+  }
+  const renderChat = (chat: Tables<"chats">) => (
+    <div
+      key={chat.id}
+      className="min-w-0 rounded border border-transparent p-1"
     >
-      <div className="flex h-full flex-col p-3">
-        <div className="flex items-center border-b-2 pb-2">
-          <WorkspaceSwitcher />
-
-          <WorkspaceSettings />
-        </div>
-
-        {(() => {
-          switch (contentType) {
-            case "chats":
-              return renderSidebarContent("chats", chats, chatFolders)
-
-            case "presets":
-              return renderSidebarContent("presets", presets, presetFolders)
-
-            case "prompts":
-              return renderSidebarContent("prompts", prompts, promptFolders)
-
-            case "files":
-              return renderSidebarContent("files", files, filesFolders)
-
-            case "collections":
-              return renderSidebarContent(
-                "collections",
-                collections,
-                collectionFolders
-              )
-
-            case "assistants":
-              return renderSidebarContent(
-                "assistants",
-                assistants,
-                assistantFolders
-              )
-
-            case "tools":
-              return renderSidebarContent("tools", tools, toolFolders)
-
-            case "models":
-              return renderSidebarContent("models", models, modelFolders)
-
-            default:
-              return null
-          }
-        })()}
+      <ChatItem chat={chat} />
+      <select
+        aria-label={`${chat.name} sohbetini klasöre taşı`}
+        className="bg-background text-muted-foreground ml-2 max-w-[calc(100%-16px)] rounded border px-2 py-1 text-xs"
+        value={chat.folder_id || ""}
+        onChange={event => moveChat(chat, event.target.value)}
+      >
+        <option value="">Klasörsüz</option>
+        {chatFolders.map(folder => (
+          <option key={folder.id} value={folder.id}>
+            {folder.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+      <div className="flex gap-2">
+        <Button className="min-h-[44px] flex-1" onClick={handleNewChat}>
+          <IconPlus size={18} className="mr-2" />
+          Yeni sohbet
+        </Button>
+        <Button
+          aria-label="Yeni klasör"
+          title="Yeni klasör"
+          className="min-h-[44px]"
+          variant="outline"
+          size="icon"
+          onClick={() => {
+            setName("")
+            setFolderDialog({})
+          }}
+        >
+          <IconFolderPlus size={20} />
+        </Button>
       </div>
-    </TabsContent>
+      <Input
+        aria-label="Sohbet geçmişinde ara"
+        placeholder="Sohbetlerde ara..."
+        value={search}
+        onChange={event => setSearch(event.target.value)}
+      />
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+        {chatFolders.map(folder => (
+          <details
+            key={folder.id}
+            open={search ? true : undefined}
+            className="rounded border p-2"
+          >
+            <summary className="cursor-pointer break-words text-sm font-medium">
+              {folder.name}
+            </summary>
+            <div className="my-2 flex justify-end gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`${folder.name} klasörünü yeniden adlandır`}
+                onClick={() => {
+                  setName(folder.name)
+                  setFolderDialog({ folder })
+                }}
+              >
+                <IconEdit size={16} />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`${folder.name} klasörünü sil`}
+                onClick={() => setFolderDialog({ folder, remove: true })}
+              >
+                <IconTrash size={16} />
+              </Button>
+            </div>
+            {visible
+              .filter(chat => chat.folder_id === folder.id)
+              .map(renderChat)}
+          </details>
+        ))}
+        {visible
+          .filter(
+            chat =>
+              !chat.folder_id ||
+              !chatFolders.some(folder => folder.id === chat.folder_id)
+          )
+          .map(renderChat)}
+        {!visible.length && (
+          <p className="text-muted-foreground py-4 text-center text-sm">
+            {search ? "Sohbet bulunamadı." : "Henüz sohbet yok."}
+          </p>
+        )}
+      </div>
+      <Dialog
+        open={folderDialog !== null}
+        onOpenChange={open => {
+          if (!saving && !open) setFolderDialog(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {folderDialog?.remove
+                ? "Klasörü sil"
+                : folderDialog?.folder
+                  ? "Klasörü yeniden adlandır"
+                  : "Yeni klasör"}
+            </DialogTitle>
+            {folderDialog?.remove && (
+              <DialogDescription>
+                Klasör silinecek; içindeki sohbetler klasörsüz olarak korunacak.
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {!folderDialog?.remove && (
+            <Input
+              autoFocus
+              aria-label="Klasör adı"
+              value={name}
+              maxLength={100}
+              onChange={event => setName(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === "Enter" && name.trim() && !saving)
+                  saveFolder()
+              }}
+            />
+          )}
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              disabled={saving}
+              onClick={() => setFolderDialog(null)}
+            >
+              Vazgeç
+            </Button>
+            <Button
+              disabled={saving || (!folderDialog?.remove && !name.trim())}
+              onClick={saveFolder}
+            >
+              {saving
+                ? "Kaydediliyor..."
+                : folderDialog?.remove
+                  ? "Klasörü sil"
+                  : "Kaydet"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

@@ -1,133 +1,74 @@
 "use client"
 
 import { Sidebar } from "@/components/sidebar/sidebar"
-import { SidebarSwitcher } from "@/components/sidebar/sidebar-switcher"
 import { Button } from "@/components/ui/button"
-import { Tabs } from "@/components/ui/tabs"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { cn } from "@/lib/utils"
-import { ContentType } from "@/types"
-import { IconChevronCompactRight } from "@tabler/icons-react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { FC, useState } from "react"
-import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
-import { CommandK } from "../utility/command-k"
+import { IconMenu2, IconX } from "@tabler/icons-react"
+import { FC, useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 
-export const SIDEBAR_WIDTH = 350
+export const SIDEBAR_WIDTH = 300
 
-interface DashboardProps {
-  children: React.ReactNode
-}
-
-export const Dashboard: FC<DashboardProps> = ({ children }) => {
-  useHotkey("s", () => setShowSidebar(prevState => !prevState))
-
+export const Dashboard: FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [showSidebar, setShowSidebar] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const tabValue = searchParams.get("tab") || "chats"
-
-  const { handleSelectDeviceFile } = useSelectFileHandler()
-
-  const [contentType, setContentType] = useState<ContentType>(
-    tabValue as ContentType
-  )
-  const [showSidebar, setShowSidebar] = useState(
-    window.innerWidth >= 768 && localStorage.getItem("showSidebar") === "true"
-  )
-  const [isDragging, setIsDragging] = useState(false)
-
-  const onFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-
-    const files = event.dataTransfer.files
-    const file = files[0]
-
-    handleSelectDeviceFile(file)
-
-    setIsDragging(false)
-  }
-
-  const handleDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragging(false)
-  }
-
-  const onDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-  }
-
-  const handleToggleSidebar = () => {
-    setShowSidebar(prevState => !prevState)
-    localStorage.setItem("showSidebar", String(!showSidebar))
-  }
-
+  useEffect(() => {
+    setShowSidebar(
+      window.innerWidth >= 768 && localStorage.getItem("showSidebar") === "true"
+    )
+  }, [])
+  useEffect(() => {
+    if (window.innerWidth < 768) setShowSidebar(false)
+  }, [pathname])
+  const toggleSidebar = () =>
+    setShowSidebar(previous => {
+      localStorage.setItem("showSidebar", String(!previous))
+      return !previous
+    })
+  useHotkey("s", toggleSidebar)
   return (
-    <div className="flex size-full">
-      <CommandK />
-
-      <div
-        className={cn(
-          "duration-200 dark:border-none " + (showSidebar ? "border-r-2" : "")
-        )}
-        style={{
-          // Sidebar
-          minWidth: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-          maxWidth: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-          width: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px"
-        }}
-      >
-        {showSidebar && (
-          <Tabs
-            className="flex h-full"
-            value={contentType}
-            onValueChange={tabValue => {
-              setContentType(tabValue as ContentType)
-              router.replace(`${pathname}?tab=${tabValue}`)
-            }}
+    <div className="relative flex size-full min-w-0 overflow-hidden">
+      {showSidebar && (
+        <>
+          <button
+            aria-label="Sohbet geçmişini kapat"
+            className="fixed inset-0 z-20 bg-black/40 md:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+          <aside
+            aria-label="Sohbet geçmişi"
+            className="bg-background fixed inset-y-0 left-0 z-30 flex w-[min(300px,85vw)] shrink-0 flex-col border-r md:relative md:w-[300px]"
           >
-            <SidebarSwitcher onContentTypeChange={setContentType} />
-
-            <Sidebar contentType={contentType} showSidebar={showSidebar} />
-          </Tabs>
+            <div className="flex items-center justify-between border-b px-3 py-2">
+              <h2 className="font-semibold">Sohbet geçmişi</h2>
+              <Button
+                aria-label="Geçmişi kapat"
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+              >
+                <IconX size={20} />
+              </Button>
+            </div>
+            <Sidebar />
+          </aside>
+        </>
+      )}
+      <main className="bg-muted/50 relative flex min-w-0 flex-1 flex-col">
+        {children}
+        {!showSidebar && (
+          <Button
+            aria-label="Sohbet geçmişini aç"
+            title="Sohbet geçmişi"
+            className="absolute left-2 top-2 z-10"
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+          >
+            <IconMenu2 size={22} />
+          </Button>
         )}
-      </div>
-
-      <div
-        className="bg-muted/50 relative flex min-w-0 flex-1 flex-col"
-        onDrop={onFileDrop}
-        onDragOver={onDragOver}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-      >
-        {isDragging ? (
-          <div className="flex h-full items-center justify-center bg-black/50 text-2xl text-white">
-            drop file here
-          </div>
-        ) : (
-          children
-        )}
-
-        <Button
-          className={cn(
-            "absolute left-[4px] top-[50%] z-10 size-[32px] cursor-pointer"
-          )}
-          style={{
-            // marginLeft: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-            transform: showSidebar ? "rotate(180deg)" : "rotate(0deg)"
-          }}
-          variant="ghost"
-          size="icon"
-          onClick={handleToggleSidebar}
-        >
-          <IconChevronCompactRight size={24} />
-        </Button>
-      </div>
+      </main>
     </div>
   )
 }

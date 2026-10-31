@@ -47,7 +47,15 @@ export const UpdateChat: FC<UpdateChatProps> = ({ chat }) => {
   return (
     <Dialog open={showChatDialog} onOpenChange={setShowChatDialog}>
       <DialogTrigger asChild>
-        <IconEdit className="hover:opacity-50" size={18} />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Sohbeti yeniden adlandır"
+          title="Sohbeti yeniden adlandır"
+          className="size-8"
+        >
+          <IconEdit size={16} />
+        </Button>
       </DialogTrigger>
 
       <DialogContent onKeyDown={handleKeyDown}>
