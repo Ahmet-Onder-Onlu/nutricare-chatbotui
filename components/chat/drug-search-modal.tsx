@@ -1,10 +1,5 @@
 import { FC, useEffect, useState } from "react"
-import {
-  searchFoods,
-  FoodInteraction,
-  searchDrugs,
-  NutricareEntry
-} from "@/db/nutricare"
+import { searchCatalog, FoodInteraction, NutricareEntry } from "@/db/nutricare"
 import { useDebounce } from "../../lib/hooks/use-debounce"
 import { IconSearch, IconX } from "@tabler/icons-react"
 
@@ -37,8 +32,8 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
       return
     }
     setIsLoading(true)
-    Promise.all([searchDrugs(debouncedSearch), searchFoods(debouncedSearch)])
-      .then(([drugs, foodResults]) => {
+    searchCatalog(debouncedSearch)
+      .then(({ drugs, foods: foodResults }) => {
         if (!active) return
         setSearchResults(drugs || [])
         setFoods(foodResults)
@@ -110,6 +105,9 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
           />
         </div>
 
+        <p className="mb-3 text-xs text-gray-500">
+          En alakalı en fazla 5 sonuç gösterilir.
+        </p>
         {/* Search results */}
         <div className="mb-6 max-h-[200px] overflow-y-auto">
           {searchResults.map(drug => (

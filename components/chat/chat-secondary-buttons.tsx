@@ -1,3 +1,4 @@
+import { GOOGLE_LLM_LIST } from "@/lib/models/llm/google-llm-list"
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { IconInfoCircle, IconMessagePlus } from "@tabler/icons-react"
@@ -22,7 +23,12 @@ export const ChatSecondaryButtons: FC<ChatSecondaryButtonsProps> = ({}) => {
                 <div className="text-xl font-bold">Chat Info</div>
 
                 <div className="mx-auto mt-2 max-w-xs space-y-2 sm:max-w-sm md:max-w-md lg:max-w-lg">
-                  <div>Model: {selectedChat.model}</div>
+                  <div>
+                    Model:{" "}
+                    {GOOGLE_LLM_LIST.find(
+                      model => model.modelId === selectedChat.model
+                    )?.modelName || "Standart model"}
+                  </div>
                   <div>Prompt: {selectedChat.prompt}</div>
 
                   <div>Temperature: {selectedChat.temperature}</div>

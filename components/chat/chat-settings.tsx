@@ -1,3 +1,4 @@
+import { GOOGLE_LLM_LIST } from "@/lib/models/llm/google-llm-list"
 import { ChatbotUIContext } from "@/context/context"
 import {
   getUserApiKey,
@@ -27,6 +28,9 @@ export const ChatSettings = () => {
   const models = availableHostedModels.filter(
     model => model.provider === "google"
   )
+  const label = (id: string) =>
+    GOOGLE_LLM_LIST.find(model => model.modelId === id)?.modelName ||
+    "Standart model"
   const current = models.find(model => model.modelId === chatSettings.model)
   const saveKey = () => {
     if (!/^[A-Za-z0-9_-]{20,256}$/.test(draft.trim())) {
@@ -52,9 +56,7 @@ export const ChatSettings = () => {
           className="flex max-w-[130px] items-center gap-2 px-2 sm:max-w-[240px]"
           variant="ghost"
         >
-          <span className="truncate text-sm">
-            {current?.modelName || chatSettings.model}
-          </span>
+          <span className="truncate text-sm">{label(chatSettings.model)}</span>
           <IconAdjustmentsHorizontal className="shrink-0" size={22} />
         </Button>
       </PopoverTrigger>
@@ -81,11 +83,13 @@ export const ChatSettings = () => {
               }
             >
               {!current && (
-                <option value={chatSettings.model}>{chatSettings.model}</option>
+                <option value={chatSettings.model}>
+                  {label(chatSettings.model)}
+                </option>
               )}
               {models.map(model => (
                 <option key={model.modelId} value={model.modelId}>
-                  {model.modelName}
+                  {label(model.modelId)}
                 </option>
               ))}
             </select>
