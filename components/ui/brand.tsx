@@ -2,23 +2,22 @@
 
 import Link from "next/link"
 import { FC } from "react"
-import { ChatbotUISVG } from "../icons/chatbotui-svg"
+import { LogoMark } from "../nutricare/logo"
 
 interface BrandProps {
   theme?: "dark" | "light"
 }
 
-export const Brand: FC<BrandProps> = ({ theme = "dark" }) => {
+export const Brand: FC<BrandProps> = () => {
   return (
     <Link
-      className="flex cursor-pointer flex-col items-center hover:opacity-50"
+      className="flex cursor-pointer flex-col items-center transition-opacity hover:opacity-80"
       href="/"
     >
-      <div className="mb-2">
-        <ChatbotUISVG theme={theme === "dark" ? "dark" : "light"} scale={0.3} />
+      <LogoMark size={64} className="nc-float mb-3" />
+      <div className="text-4xl font-bold tracking-tight">
+        Nutri<span className="nc-gradient-text">Care</span>
       </div>
-
-      <div className="text-4xl font-bold tracking-wide">NutriCare Chatbot</div>
     </Link>
   )
 }

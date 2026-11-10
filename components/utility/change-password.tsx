@@ -13,6 +13,10 @@ import {
 } from "../ui/dialog"
 import { Input } from "../ui/input"
 import { toast } from "sonner"
+import {
+  isStrongPassword,
+  PASSWORD_REQUIREMENT_MESSAGE
+} from "@/lib/auth/password"
 
 interface ChangePasswordProps {}
 
@@ -23,25 +27,31 @@ export const ChangePassword: FC<ChangePasswordProps> = () => {
   const [confirmPassword, setConfirmPassword] = useState("")
 
   const handleResetPassword = async () => {
-    if (!newPassword) return toast.info("Please enter your new password.")
+    if (!newPassword) return toast.info("Lütfen yeni şifrenizi girin.")
+    if (!isStrongPassword(newPassword))
+      return toast.error(PASSWORD_REQUIREMENT_MESSAGE)
+    if (newPassword !== confirmPassword)
+      return toast.error("Şifreler birbiriyle eşleşmiyor.")
 
-    await supabase.auth.updateUser({ password: newPassword })
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) return toast.error("Şifre güncellenemedi: " + error.message)
 
-    toast.success("Password changed successfully.")
+    toast.success("Şifreniz güncellendi.")
 
     return router.push("/login")
   }
 
   return (
     <Dialog open={true}>
-      <DialogContent className="h-[240px] w-[400px] p-4">
+      <DialogContent className="w-[min(420px,92vw)] p-4">
         <DialogHeader>
-          <DialogTitle>Change Password</DialogTitle>
+          <DialogTitle>Yeni şifre belirleyin</DialogTitle>
         </DialogHeader>
 
         <Input
           id="password"
-          placeholder="New Password"
+          placeholder="Yeni şifre (en az 8 karakter, büyük/küçük harf, rakam)"
+          autoComplete="new-password"
           type="password"
           value={newPassword}
           onChange={e => setNewPassword(e.target.value)}
@@ -49,14 +59,15 @@ export const ChangePassword: FC<ChangePasswordProps> = () => {
 
         <Input
           id="confirmPassword"
-          placeholder="Confirm New Password"
+          placeholder="Yeni şifreyi tekrar girin"
+          autoComplete="new-password"
           type="password"
           value={confirmPassword}
           onChange={e => setConfirmPassword(e.target.value)}
         />
 
         <DialogFooter>
-          <Button onClick={handleResetPassword}>Confirm Change</Button>
+          <Button onClick={handleResetPassword}>Şifreyi güncelle</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

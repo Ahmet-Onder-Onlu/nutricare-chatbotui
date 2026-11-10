@@ -8,7 +8,14 @@ const SubmitButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (props, ref) => {
     const { pending } = useFormStatus()
 
-    return <Button disabled={pending} ref={ref} {...props} />
+    return (
+      <Button
+        ref={ref}
+        {...props}
+        disabled={pending || props.disabled}
+        aria-busy={pending || undefined}
+      />
+    )
   }
 )
 

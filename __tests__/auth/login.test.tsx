@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import Login from "@/app/[locale]/login/page"
+import * as loginActions from "@/app/[locale]/login/actions"
 import { createClient } from "@/lib/supabase/server"
 
 jest.mock("@/lib/supabase/server", () => ({ createClient: jest.fn() }))
@@ -13,13 +13,11 @@ jest.mock("next/navigation", () => ({
   }
 }))
 jest.mock("@vercel/edge-config", () => ({ get: jest.fn() }))
-jest.mock("@/components/ui/brand", () => ({ Brand: () => null }))
-jest.mock("@/components/ui/submit-button", () => ({ SubmitButton: () => null }))
 
-function form() {
+function form(password = "Test-password1") {
   const data = new FormData()
   data.set("email", " TEST@example.com ")
-  data.set("password", "test-password")
+  data.set("password", password)
   return data
 }
 
@@ -42,24 +40,17 @@ describe("login and signup server actions", () => {
     ;(createClient as jest.Mock).mockReturnValue(client)
   })
   async function actions() {
-    const page = await Login({ searchParams: Promise.resolve({ message: "" }) })
-    const formElement = page.props.children
-    const children = formElement.props.children
-    return {
-      signIn: formElement.props.action,
-      signUp: children.find((item: any) => item?.props?.children === "Kayıt ol")
-        .props.formAction
-    }
+    return { signIn: loginActions.signIn, signUp: loginActions.signUp }
   }
-  it("signs in, repairs the caller account and redirects into chat", async () => {
+  it("signs in, repairs the caller account and redirects to the home dashboard", async () => {
     const { signIn } = await actions()
     client.auth.getUser.mockResolvedValue({
       data: { user: { id: "user1", email_confirmed_at: "2026-10-31" } }
     })
-    await expect(signIn(form())).rejects.toThrow("REDIRECT:/workspace1/chat")
+    await expect(signIn(form())).rejects.toThrow("REDIRECT:/workspace1")
     expect(client.auth.signInWithPassword).toHaveBeenCalledWith({
       email: "test@example.com",
-      password: "test-password"
+      password: "Test-password1"
     })
     expect(client.rpc).toHaveBeenCalledWith("ensure_nutricare_account")
   })
@@ -76,7 +67,7 @@ describe("login and signup server actions", () => {
     })
     const { signIn } = await actions()
     await expect(signIn(form())).rejects.toThrow(
-      "REDIRECT:/login?message=Invalid%20credentials%20%26%20retry"
+      "REDIRECT:/login?message=Invalid+credentials+%26+retry"
     )
     expect(client.rpc).not.toHaveBeenCalled()
   })
@@ -96,7 +87,7 @@ describe("login and signup server actions", () => {
     )
     expect(client.rpc).not.toHaveBeenCalled()
   })
-  it("enters chat immediately when signup returns a session", async () => {
+  it("enters the app immediately when signup returns a session", async () => {
     client.auth.signUp.mockResolvedValue({
       data: { session: { user: { id: "user1" } } },
       error: null
@@ -105,7 +96,7 @@ describe("login and signup server actions", () => {
     client.auth.getUser.mockResolvedValue({
       data: { user: { id: "user1", email_confirmed_at: "2026-10-31" } }
     })
-    await expect(signUp(form())).rejects.toThrow("REDIRECT:/workspace1/chat")
+    await expect(signUp(form())).rejects.toThrow("REDIRECT:/workspace1")
   })
   it("reports missing database setup instead of redirecting forever", async () => {
     client.rpc.mockResolvedValue({ data: null, error: { code: "42883" } })
@@ -114,5 +105,36 @@ describe("login and signup server actions", () => {
       data: { user: { email_confirmed_at: "2026-10-31" } }
     })
     await expect(signIn(form())).rejects.toThrow("REDIRECT:/login?message=")
+  })
+  it.each([
+    ["short", "Ab1"],
+    ["no uppercase", "lowercase1"],
+    ["no lowercase", "UPPERCASE1"],
+    ["no digit", "NoDigitsHere"],
+    ["whitespace", "Has space1A"]
+  ])(
+    "rejects a weak signup password (%s) before calling Supabase",
+    async (_, password) => {
+      const { signUp } = await actions()
+      await expect(signUp(form(password))).rejects.toThrow(
+        /REDIRECT:\/login\?message=.*tab=signup/
+      )
+      expect(client.auth.signUp).not.toHaveBeenCalled()
+    }
+  )
+  it("rejects mismatched password confirmation", async () => {
+    const data = form()
+    data.set("confirmPassword", "Different-pass1")
+    const { signUp } = await actions()
+    await expect(signUp(data)).rejects.toThrow("tab=signup")
+    expect(client.auth.signUp).not.toHaveBeenCalled()
+  })
+  it("does not apply the signup policy to sign in of existing accounts", async () => {
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { id: "user1", email_confirmed_at: "2026-10-31" } }
+    })
+    const { signIn } = await actions()
+    await expect(signIn(form("legacy"))).rejects.toThrow("REDIRECT:/workspace1")
+    expect(client.auth.signInWithPassword).toHaveBeenCalled()
   })
 })

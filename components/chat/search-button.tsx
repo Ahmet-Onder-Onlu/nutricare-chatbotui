@@ -10,7 +10,7 @@ export const SearchButton: FC<SearchButtonProps> = ({}) => {
   return (
     <>
       <button
-        className="flex min-h-[44px] cursor-pointer items-center space-x-2 rounded-lg bg-blue-500 px-3 py-2 text-sm text-white shadow-sm transition-colors hover:bg-blue-600"
+        className="nc-gradient-bg flex min-h-[44px] cursor-pointer items-center space-x-2 rounded-xl px-3 py-2 text-sm text-white shadow-md shadow-blue-500/20 transition-transform hover:scale-[1.03]"
         onClick={() => setIsModalOpen(true)}
       >
         <span className="whitespace-nowrap font-medium">Besin / İlaç Ara</span>
