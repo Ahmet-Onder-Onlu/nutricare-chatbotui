@@ -2,6 +2,8 @@ import { FC, useEffect, useState } from "react"
 import { searchCatalog, FoodInteraction, NutricareEntry } from "@/db/nutricare"
 import { useDebounce } from "../../lib/hooks/use-debounce"
 import { IconSearch, IconX } from "@tabler/icons-react"
+import { classifyRisk, RISK_META } from "@/lib/interactions/risk"
+import { RiskBadge } from "../nutricare/risk-badge"
 
 interface DrugSearchModalProps {
   isOpen: boolean
@@ -72,7 +74,7 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
       />
 
       {/* Modal content */}
-      <div className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+      <div className="nc-pop bg-card relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-6 shadow-2xl">
         {/* Close button */}
         <button
           aria-label="Kapat"
@@ -83,9 +85,7 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
         </button>
 
         {/* Title */}
-        <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
-          Besin ve İlaç Arama
-        </h2>
+        <h2 className="mb-6 text-2xl font-bold">Besin ve İlaç Arama</h2>
 
         {/* Search bar */}
         <div className="relative mb-6">
@@ -97,7 +97,7 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
             onChange={e => {
               setSearchQuery(e.target.value)
             }}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-500"
+            className="bg-background focus:ring-ring/30 h-11 w-full rounded-xl border px-4 pr-10 outline-none focus:ring-4"
           />
           <IconSearch
             className={`absolute right-3 top-1/2 -translate-y-1/2 ${isLoading ? "animate-spin" : ""} text-gray-400`}
@@ -148,9 +148,10 @@ export const DrugSearchModal: FC<DrugSearchModalProps> = ({
           {foods.map(food => (
             <article
               key={food.id}
-              className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+              className={`nc-fade-up rounded-xl border p-4 ${RISK_META[classifyRisk(food)].card}`}
             >
-              <h3 className="text-lg font-semibold">{food.food_name}</h3>
+              <RiskBadge level={classifyRisk(food)} />
+              <h3 className="mt-2 text-lg font-semibold">{food.food_name}</h3>
               <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
                 {food.latin_name}
               </p>

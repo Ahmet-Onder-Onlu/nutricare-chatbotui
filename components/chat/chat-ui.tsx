@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { IconHome } from "@tabler/icons-react"
 import Loading from "@/app/[locale]/loading"
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
@@ -188,6 +190,14 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
           {selectedChat?.name || "Chat"}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <Link
+            href={`/${params.workspaceid}`}
+            aria-label="Ana sayfaya dön"
+            title="Ana sayfa"
+            className="hover:bg-muted text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg transition-colors"
+          >
+            <IconHome size={20} />
+          </Link>
           <ChatSettings />
           <ChatSecondaryButtons />
         </div>

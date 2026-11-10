@@ -26,6 +26,16 @@ export const Dashboard: FC<{ children: React.ReactNode }> = ({ children }) => {
       return !previous
     })
   useHotkey("s", toggleSidebar)
+  const isChatRoute = /\/chat(\/|$)/.test(pathname || "")
+  if (!isChatRoute)
+    return (
+      <div
+        id="nc-scroll-root"
+        className="bg-background relative size-full min-w-0 overflow-y-auto overflow-x-hidden"
+      >
+        {children}
+      </div>
+    )
   return (
     <div className="relative flex size-full min-w-0 overflow-hidden">
       {showSidebar && (
