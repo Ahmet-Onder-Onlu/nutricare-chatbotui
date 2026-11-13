@@ -4,13 +4,11 @@ import {
   isStrongPassword,
   PASSWORD_REQUIREMENT_MESSAGE
 } from "@/lib/auth/password"
+import { isRateLimited, translateAuthError } from "@/lib/auth/errors"
 import { createClient } from "@/lib/supabase/server"
 import { get } from "@vercel/edge-config"
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
-
-const EMAIL_NOT_CONFIRMED =
-  "E-posta adresinizi doğrulayın. Gerekirse aşağıdan yeni onay bağlantısı isteyin."
 
 function loginRedirect(message: string, tab?: "signup"): never {
   const query = new URLSearchParams({ message })
@@ -22,20 +20,6 @@ function readEmail(formData: FormData) {
   return String(formData.get("email") || "")
     .trim()
     .toLowerCase()
-}
-
-function translateAuthError(message: string) {
-  if (message === "Email not confirmed") return EMAIL_NOT_CONFIRMED
-  if (message === "Invalid login credentials")
-    return "E-posta veya şifre hatalı."
-  if (/already registered/i.test(message))
-    return "Bu e-posta adresiyle kayıtlı bir hesap var. Giriş yapmayı deneyin."
-  if (
-    /password/i.test(message) &&
-    /(weak|short|least|character)/i.test(message)
-  )
-    return PASSWORD_REQUIREMENT_MESSAGE
-  return message
 }
 
 export async function enterApp(client: ReturnType<typeof createClient>) {
@@ -134,6 +118,11 @@ export async function resendConfirmation(formData: FormData) {
       emailRedirectTo: `${(await headers()).get("origin")}/auth/callback`
     }
   })
+  if (
+    error &&
+    (isRateLimited(error.message) || /after \d+ seconds?/i.test(error.message))
+  )
+    return loginRedirect(translateAuthError(error.message))
   return loginRedirect(
     error
       ? "Onay e-postası gönderilemedi. Lütfen biraz sonra tekrar deneyin."

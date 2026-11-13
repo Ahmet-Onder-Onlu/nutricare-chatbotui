@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import * as loginActions from "@/app/[locale]/login/actions"
+import { EMAIL_RATE_LIMIT_MESSAGE, translateAuthError } from "@/lib/auth/errors"
 import { createClient } from "@/lib/supabase/server"
 
 jest.mock("@/lib/supabase/server", () => ({ createClient: jest.fn() }))
@@ -136,7 +137,27 @@ describe("login and signup server actions", () => {
       data: { user: { id: "user1", email_confirmed_at: "2026-10-31" } }
     })
     const { signIn } = await actions()
-    await expect(signIn(form(VALID.toLowerCase().slice(0, 6)))).rejects.toThrow("REDIRECT:/workspace1")
+    await expect(signIn(form(VALID.toLowerCase().slice(0, 6)))).rejects.toThrow(
+      "REDIRECT:/workspace1"
+    )
     expect(client.auth.signInWithPassword).toHaveBeenCalled()
+  })
+})
+
+describe("auth error translation", () => {
+  it("explains Supabase email rate limits in Turkish", () => {
+    expect(translateAuthError("email rate limit exceeded")).toBe(
+      EMAIL_RATE_LIMIT_MESSAGE
+    )
+    expect(translateAuthError("Too Many Requests")).toBe(
+      EMAIL_RATE_LIMIT_MESSAGE
+    )
+  })
+  it("explains cooldown messages", () => {
+    expect(
+      translateAuthError(
+        "For security purposes, you can only request this after 42 seconds."
+      )
+    ).toContain("42 saniye")
   })
 })
